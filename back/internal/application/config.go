@@ -117,31 +117,52 @@ type PostgresPoolConfig struct {
 
 // Mailer конфигурация почтовика.
 // Поддерживается только TLS.
+// Обязательные поля проверяются только при FEATURE_AUTH_EMAIL_ENABLED=true.
 type Mailer struct {
 	// Host - хост почтового сервера.
 	// Пример: "smtp.timeweb.ru"
-	Host string `env:"MAILER_HOST,required"`
+	Host string `env:"MAILER_HOST"`
 
 	// Port - порт почтового сервера.
 	// Пример: 465
-	Port int `env:"MAILER_PORT,required"`
+	Port int `env:"MAILER_PORT"`
 
 	// Username - имя пользователя почтового сервера.
 	// Пример: "no-reply@domain.tld"
-	Username string `env:"MAILER_USERNAME,required"`
+	Username string `env:"MAILER_USERNAME"`
 
 	// Password - пароль пользователя почтового сервера.
-	Password string `env:"MAILER_PASSWORD,required"`
+	Password string `env:"MAILER_PASSWORD"`
 
 	// From - адрес отправителя.
 	// Пример: "Klubok <no-reply@domain.tld>"
-	From string `env:"MAILER_FROM,required"`
+	From string `env:"MAILER_FROM"`
 
 	// SendInterval - интервал между отправками писем воркером.
 	SendInterval time.Duration `env:"MAILER_SEND_INTERVAL" envDefault:"1s"`
 
 	// ChannelBufferSize - размер буфера канала для асинхронной отправки писем.
 	ChannelBufferSize int `env:"MAILER_CHANNEL_BUFFER_SIZE" envDefault:"100"`
+}
+
+func (m Mailer) validate() error {
+	if m.Host == "" {
+		return errors.New("MAILER_HOST is empty while FEATURE_AUTH_EMAIL_ENABLED=true")
+	}
+	if m.Port == 0 {
+		return errors.New("MAILER_PORT is empty while FEATURE_AUTH_EMAIL_ENABLED=true")
+	}
+	if m.Username == "" {
+		return errors.New("MAILER_USERNAME is empty while FEATURE_AUTH_EMAIL_ENABLED=true")
+	}
+	if m.Password == "" {
+		return errors.New("MAILER_PASSWORD is empty while FEATURE_AUTH_EMAIL_ENABLED=true")
+	}
+	if m.From == "" {
+		return errors.New("MAILER_FROM is empty while FEATURE_AUTH_EMAIL_ENABLED=true")
+	}
+
+	return nil
 }
 
 // Metrics конфигурация метрик.
@@ -444,13 +465,29 @@ func LoadConfiguration() (*Configuration, error) {
 		}
 	}
 
-	if config.Feature.FakeAutoAccounts.Enabled && config.Feature.Auth.SSO.Enabled {
-		return nil, errors.New("validate auth: FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED and FEATURE_AUTH_SSO_ENABLED must not be enabled at the same time")
+	if config.Feature.Auth.Email.Enabled {
+		if err := config.Mailer.validate(); err != nil {
+			return nil, fmt.Errorf("validate mailer: %w", err)
+		}
 	}
 
-	if !config.Feature.Auth.Email.Enabled && !config.Feature.Auth.SSO.Enabled {
-		return nil, errors.New("validate auth: at least one of FEATURE_AUTH_EMAIL_ENABLED, FEATURE_AUTH_SSO_ENABLED must be enabled")
+	if err := config.Feature.validate(); err != nil {
+		return nil, fmt.Errorf("validate auth: %w", err)
 	}
 
 	return &config, nil
+}
+
+func (f Feature) validate() error {
+	if f.FakeAutoAccounts.Enabled && f.Auth.SSO.Enabled {
+		return errors.New("FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED and FEATURE_AUTH_SSO_ENABLED must not be enabled at the same time")
+	}
+
+	if !f.Auth.Email.Enabled && !f.Auth.SSO.Enabled && !f.FakeAutoAccounts.Enabled {
+		return errors.New(
+			"at least one of FEATURE_AUTH_EMAIL_ENABLED, FEATURE_AUTH_SSO_ENABLED, FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED must be enabled",
+		)
+	}
+
+	return nil
 }

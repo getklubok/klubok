@@ -48,19 +48,6 @@ func Run() error { //nolint:gocognit,gocyclo,cyclop,maintidx // It's ok
 		return fmt.Errorf("new logger: %w", err)
 	}
 
-	emailClient, err := mail.NewClient(
-		cfg.Mailer.Host,
-		mail.WithPort(cfg.Mailer.Port),
-		mail.WithSSL(),
-		mail.WithTLSPortPolicy(mail.TLSMandatory),
-		mail.WithSMTPAuth(mail.SMTPAuthPlain),
-		mail.WithUsername(cfg.Mailer.Username),
-		mail.WithPassword(cfg.Mailer.Password),
-	)
-	if err != nil {
-		return fmt.Errorf("new mail client: %w", err)
-	}
-
 	dbpool, err := NewDB(ctx, ConfigDB{
 		Host:     cfg.Postgres.DSN.Host,
 		Port:     cfg.Postgres.DSN.Port,
@@ -120,14 +107,30 @@ func Run() error { //nolint:gocognit,gocyclo,cyclop,maintidx // It's ok
 	sessionUpdater := session.NewUpdater(sessionService, cfg.HTTP.Cookie.ExpiresDays, log)
 	defer sessionUpdater.Stop()
 
-	emailService := mailer.New(cfg.Mailer.From, emailClient, map[string]any{
-		"sysAppURL": cfg.AppBaseURL,
-	})
+	var emailCh chan mailer.EmailTask
+	if cfg.Feature.Auth.Email.Enabled {
+		emailClient, err := mail.NewClient(
+			cfg.Mailer.Host,
+			mail.WithPort(cfg.Mailer.Port),
+			mail.WithSSL(),
+			mail.WithTLSPortPolicy(mail.TLSMandatory),
+			mail.WithSMTPAuth(mail.SMTPAuthPlain),
+			mail.WithUsername(cfg.Mailer.Username),
+			mail.WithPassword(cfg.Mailer.Password),
+		)
+		if err != nil {
+			return fmt.Errorf("new mail client: %w", err)
+		}
 
-	emailCh := make(chan mailer.EmailTask, cfg.Mailer.ChannelBufferSize)
-	emailWorker := mailer.NewWorker(emailService, emailCh, cfg.Mailer.SendInterval, log)
-	emailWorker.Start(ctx)
-	defer emailWorker.Stop()
+		emailService := mailer.New(cfg.Mailer.From, emailClient, map[string]any{
+			"sysAppURL": cfg.AppBaseURL,
+		})
+
+		emailCh = make(chan mailer.EmailTask, cfg.Mailer.ChannelBufferSize)
+		emailWorker := mailer.NewWorker(emailService, emailCh, cfg.Mailer.SendInterval, log)
+		emailWorker.Start(ctx)
+		defer emailWorker.Stop()
+	}
 
 	ipMasker := domain.IPMasker{
 		Enabled:  cfg.Feature.IPMasking.Enabled,

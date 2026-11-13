@@ -274,8 +274,14 @@ func TestLoadConfiguration(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name:       "Should load default configuration",
-			setEnvFunc: func() {},
+			name: "Should load default configuration",
+			setEnvFunc: func() {
+				t.Setenv("MAILER_HOST", "localhost")
+				t.Setenv("MAILER_PORT", "25")
+				t.Setenv("MAILER_USERNAME", "username")
+				t.Setenv("MAILER_PASSWORD", "password")
+				t.Setenv("MAILER_FROM", "from@localhost.tld")
+			},
 			want: &Configuration{
 				Environment: "prod",
 				Log: Log{
@@ -308,6 +314,11 @@ func TestLoadConfiguration(t *testing.T) {
 					},
 				},
 				Mailer: Mailer{
+					Host:              "localhost",
+					Port:              25,
+					Username:          "username",
+					Password:          "password",
+					From:              "from@localhost.tld",
 					SendInterval:      1 * time.Second,
 					ChannelBufferSize: 100,
 				},
@@ -604,6 +615,16 @@ func TestAuth_LoadConfiguration(t *testing.T) {
 			wantErr: errors.New("validate auth sso: FEATURE_AUTH_SSO_REDIRECT_URL is empty while FEATURE_AUTH_SSO_ENABLED=true"),
 		},
 		{
+			name: "Should load with only fake accounts enabled",
+			setEnvFunc: func(t *testing.T) {
+				t.Helper()
+				setBaseEnv(t)
+				t.Setenv("FEATURE_AUTH_EMAIL_ENABLED", "false")
+				t.Setenv("FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED", "true")
+			},
+			want: Auth{},
+		},
+		{
 			name: "Should fail with fake accounts and SSO enabled",
 			setEnvFunc: func(t *testing.T) {
 				t.Helper()
@@ -614,13 +635,15 @@ func TestAuth_LoadConfiguration(t *testing.T) {
 			wantErr: errors.New("validate auth: FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED and FEATURE_AUTH_SSO_ENABLED must not be enabled at the same time"),
 		},
 		{
-			name: "Should fail with email and SSO disabled",
+			name: "Should fail with email, SSO and fake accounts disabled",
 			setEnvFunc: func(t *testing.T) {
 				t.Helper()
 				setBaseEnv(t)
 				t.Setenv("FEATURE_AUTH_EMAIL_ENABLED", "false")
 			},
-			wantErr: errors.New("validate auth: at least one of FEATURE_AUTH_EMAIL_ENABLED, FEATURE_AUTH_SSO_ENABLED must be enabled"),
+			wantErr: errors.New(
+				"validate auth: at least one of FEATURE_AUTH_EMAIL_ENABLED, FEATURE_AUTH_SSO_ENABLED, FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED must be enabled",
+			),
 		},
 	}
 	for _, tt := range tests {
@@ -638,6 +661,90 @@ func TestAuth_LoadConfiguration(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.want, got.Feature.Auth)
+			}
+		})
+	}
+}
+
+func TestMailer_LoadConfiguration(t *testing.T) {
+	setBaseEnv := func(t *testing.T) {
+		t.Helper()
+		t.Setenv("HTTP_CORS_ALLOW_ORIGINS", "http://localhost:5173")
+		t.Setenv("COOKIE_DOMAIN", "localhost")
+		t.Setenv("POSTGRES_HOST", "localhost")
+		t.Setenv("POSTGRES_PORT", "5432")
+		t.Setenv("POSTGRES_USER", "postgres")
+		t.Setenv("POSTGRES_PASSWORD", "password")
+		t.Setenv("POSTGRES_DB", "klubok_db")
+	}
+
+	setValidMailerEnv := func(t *testing.T) {
+		t.Helper()
+		t.Setenv("MAILER_HOST", "localhost")
+		t.Setenv("MAILER_PORT", "25")
+		t.Setenv("MAILER_USERNAME", "username")
+		t.Setenv("MAILER_PASSWORD", "password")
+		t.Setenv("MAILER_FROM", "from@localhost.tld")
+	}
+
+	tests := []struct {
+		name         string
+		emailEnabled string
+		setEnvFunc   func(t *testing.T)
+		wantErr      error
+	}{
+		{
+			name:         "Should require mailer settings when email auth enabled",
+			emailEnabled: "true",
+			setEnvFunc: func(t *testing.T) {
+				t.Helper()
+			},
+			wantErr: errors.New("validate mailer: MAILER_HOST is empty while FEATURE_AUTH_EMAIL_ENABLED=true"),
+		},
+		{
+			name:         "Should require mailer port when email auth enabled",
+			emailEnabled: "true",
+			setEnvFunc: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("MAILER_HOST", "localhost")
+			},
+			wantErr: errors.New("validate mailer: MAILER_PORT is empty while FEATURE_AUTH_EMAIL_ENABLED=true"),
+		},
+		{
+			name:         "Should load with mailer settings when email auth enabled",
+			emailEnabled: "true",
+			setEnvFunc:   setValidMailerEnv,
+		},
+		{
+			name:         "Should not require mailer settings when email auth disabled",
+			emailEnabled: "false",
+			setEnvFunc: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED", "true")
+			},
+		},
+		{
+			name:         "Should ignore partial mailer settings when email auth disabled",
+			emailEnabled: "false",
+			setEnvFunc: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED", "true")
+				t.Setenv("MAILER_HOST", "localhost")
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resetConfigEnv(t)
+			setBaseEnv(t)
+			t.Setenv("FEATURE_AUTH_EMAIL_ENABLED", tt.emailEnabled)
+			tt.setEnvFunc(t)
+
+			_, err := LoadConfiguration()
+			if tt.wantErr != nil {
+				assert.EqualError(t, err, tt.wantErr.Error())
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}

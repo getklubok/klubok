@@ -102,7 +102,7 @@
 | `FEATURE_ALLOWED_EMAIL_DOMAINS_ENABLED` | Ограничение регистрации по суффиксам доменов почты (список в `FEATURE_ALLOWED_EMAIL_DOMAINS_LIST`, суффиксы через запятую) | `false`      |
 | `FEATURE_ALLOWED_EMAIL_DOMAINS_LIST`    | Разрешённые суффиксы доменов для регистрации, например `example.com,corp.example.com`                                      | (пусто)      |
 
-Невалидные комбинации блокируют старт приложения с ошибкой: `FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED=true` вместе с `FEATURE_AUTH_SSO_ENABLED=true`, а также одновременно выключенные `FEATURE_AUTH_EMAIL_ENABLED=false` и `FEATURE_AUTH_SSO_ENABLED=false`. При включённом SSO `APP_BASE_URL` (фронтенд-адрес) должен быть валидным http/https URL без trailing slash — на него ведёт 302 после успешного SSO-callback.
+Невалидные комбинации блокируют старт приложения с ошибкой: `FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED=true` вместе с `FEATURE_AUTH_SSO_ENABLED=true`, а также одновременно выключенные `FEATURE_AUTH_EMAIL_ENABLED`, `FEATURE_AUTH_SSO_ENABLED` и `FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED`. При включённом SSO `APP_BASE_URL` (фронтенд-адрес) должен быть валидным http/https URL без trailing slash — на него ведёт 302 после успешного SSO-callback. Переменные `MAILER_*` обязательны только при `FEATURE_AUTH_EMAIL_ENABLED=true`.
 
 ## Политика обработки персональных данных
 
