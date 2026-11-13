@@ -88,11 +88,11 @@
 | `FEATURE_AUTH_SSO_ISSUER_URL`           | Issuer URL OIDC-провайдера для discovery (обязателен при включённом SSO)                                                   | (пусто)      |
 | `FEATURE_AUTH_SSO_CLIENT_ID`            | Идентификатор клиента у OIDC-провайдера (обязателен при включённом SSO)                                                    | (пусто)      |
 | `FEATURE_AUTH_SSO_CLIENT_SECRET`        | Секрет клиента у OIDC-провайдера (обязателен при включённом SSO)                                                           | (пусто)      |
-| `FEATURE_AUTH_SSO_REDIRECT_URL`         | URL callback бэкенда для возврата от провайдера (обязателен при включённом SSO) | (пусто)      |
+| `FEATURE_AUTH_SSO_REDIRECT_URL`         | URL callback бэкенда для возврата от провайдера (обязателен при включённом SSO)                                            | (пусто)      |
 | `FEATURE_CAPTCHA_ENABLED`               | Включить проверку капчи                                                                                                    | `false`      |
 | `FEATURE_CAPTCHA_PROVIDER`              | Провайдер капчи (`yandex`)                                                                                                 | `yandex`     |
 | `FEATURE_CAPTCHA_YANDEX_SERVER_KEY`     | Серверный ключ капчи Yandex (обязателен при включённой капче)                                                              | (пусто)      |
-| `FEATURE_CAPTCHA_YANDEX_SITE_KEY`       | Публичный ключ сайта капчи Yandex (обязателен при включённой капче, отдаётся фронтенду через API)                           | (пусто)      |
+| `FEATURE_CAPTCHA_YANDEX_SITE_KEY`       | Публичный ключ сайта капчи Yandex (обязателен при включённой капче, отдаётся фронтенду через API)                          | (пусто)      |
 | `FEATURE_STATIC_CLAIMS_ENABLED`         | Статичные claims. Срабатывает только при `environment=local`                                                               | `false`      |
 | `FEATURE_STATIC_CLAIMS_SESSION_ID`      | Session ID для статичных claims                                                                                            | (пусто)      |
 | `FEATURE_STATIC_CLAIMS_USER_ID`         | User ID для статичных claims                                                                                               | (пусто)      |
@@ -179,10 +179,16 @@
 
 ## Разработка
 
+### Скрипт для релиза
+
+```bash
+curl -L https://gist.githubusercontent.com/DimNS/1b3e3814c37f4694d8759097f7b833ac/raw/release.sh -o ~/.local/bin/release.sh
+chmod +x ~/.local/bin/release.sh
+```
+
 ### Релиз
 
 ```bash
-cd path/to/klubok
 make release
 ```
 
