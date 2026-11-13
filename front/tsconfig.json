@@ -1,0 +1,27 @@
+{
+    "compilerOptions": {
+        "target": "ES2020",
+        "useDefineForClassFields": true,
+        "lib": ["ES2020", "DOM", "DOM.Iterable"],
+        "allowJs": true,
+        "skipLibCheck": true,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "strict": true,
+        "forceConsistentCasingInFileNames": true,
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "noEmit": true,
+        "types": ["vite/client"],
+        "verbatimModuleSyntax": true, // более чистый импорт/экспорт
+        "sourceMap": true, // для отладки (Vite и так генерирует, но на всякий случай)
+        "noUnusedLocals": true, // предупреждать о неиспользуемых переменных
+        "noUnusedParameters": true, // предупреждать о неиспользуемых параметрах
+        "noImplicitReturns": true, // проверять возвращаемые значения
+        "noFallthroughCasesInSwitch": true // предотвращать провалы в switch
+    },
+    "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"],
+    "exclude": ["node_modules"]
+}

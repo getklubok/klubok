@@ -1,0 +1,173 @@
+version: "2"
+run:
+  concurrency: 4
+linters:
+  default: none
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - copyloopvar
+    - dogsled
+    - dupl
+    - durationcheck
+    - embeddedstructfieldcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+    - exptostd
+    - fatcontext
+    - forcetypeassert
+    - funcorder
+    - gocheckcompilerdirectives
+    - gochecknoglobals
+    - gochecknoinits
+    - gochecksumtype
+    - goconst
+    - gocritic
+    - godot
+    - godox
+    - goprintffuncname
+    - gosec
+    - govet
+    - iface
+    - importas
+    - inamedparam
+    - ineffassign
+    - iotamixing
+    - maintidx
+    - makezero
+    - misspell
+    - modernize
+    - musttag
+    - nakedret
+    - nilerr
+    - nilnesserr
+    - nilnil
+    - noctx
+    - nolintlint
+    - nosprintfhostport
+    - perfsprint
+    - prealloc
+    - predeclared
+    - promlinter
+    - reassign
+    - recvcheck
+    - revive
+    - rowserrcheck
+    - staticcheck
+    - testifylint
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - usetesting
+    - whitespace
+    - wrapcheck
+  settings:
+    errorlint:
+      errorf: false
+    exhaustive:
+      default-signifies-exhaustive: true
+      explicit-exhaustive-switch: true
+    gosec:
+      excludes:
+        - G108
+    govet:
+      disable:
+        - fieldalignment
+        - slog
+      enable-all: true
+      settings:
+        shadow:
+          strict: true
+    iface:
+      enable:
+        - identical
+        - unused
+        - opaque
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    revive:
+      enable-all-rules: true
+      rules:
+        - name: add-constant
+          disabled: true
+        - name: cognitive-complexity
+          disabled: true
+        - name: comment-spacings
+          disabled: true
+        - name: cyclomatic
+          disabled: true
+        - name: function-length
+          disabled: true
+        - name: line-length-limit
+          disabled: true
+        - name: max-public-structs
+          disabled: true
+        - name: unused-parameter
+          disabled: true
+    rowserrcheck:
+      packages:
+        - github.com/jmoiron/sqlx
+    testifylint:
+      enable-all: true
+      disable:
+        - require-error
+    unparam:
+      check-exported: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - dupl
+          - goconst
+          - maintidx
+          - maligned
+          - musttag
+          - revive
+        path: _test\.go
+      - linters:
+          - govet
+        text: '^shadow: declaration of "err" shadows declaration.+'
+      - linters:
+          - revive
+        text: '^struct-tag: unknown option "omitempty" in validate tag$'
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-same-issues: 50
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(data-migrator)
+    goimports:
+      local-prefixes:
+        - data-migrator
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

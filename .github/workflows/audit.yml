@@ -1,0 +1,196 @@
+name: audit
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [opened, synchronize, reopened]
+  schedule:
+    - cron: "0 3 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+jobs:
+  audit-back:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run Trivy vulnerability scanner for code
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.2
+          scan-type: fs
+          scan-ref: ./back
+          scanners: "vuln,secret,misconfig"
+          severity: "MEDIUM,HIGH,CRITICAL"
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+      - name: Run Trivy vulnerability scanner for data-migrator
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.2
+          scan-type: fs
+          scan-ref: ./data-migrator
+          scanners: "vuln"
+          severity: "MEDIUM,HIGH,CRITICAL"
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+      - name: Run Trivy scanner for repository files
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.2
+          scan-type: fs
+          scan-ref: .
+          scanners: "secret,misconfig"
+          severity: "MEDIUM,HIGH,CRITICAL"
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: ./back/go.mod
+          cache-dependency-path: ./back/go.sum
+
+      - name: Check go.mod and go.sum are tidy
+        run: go mod tidy -diff
+        working-directory: ./back
+
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@54042514f505b273907334ae2b9cdbb9a0213c1a # v2.4.0
+        with:
+          version: v5.7.0
+
+      - name: Run mocks check
+        run: |
+          make mocks
+          git diff --exit-code || {
+            echo "❌ Mock files are not up to date!"
+            echo "Please run 'make mocks' locally and commit the changes."
+            echo "Differences found:"
+            git diff --name-only
+            exit 1
+          }
+        working-directory: ./back
+
+      - name: Run linter - golangci-lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.11.4
+          working-directory: ./back
+
+      - name: Run linter - for the project
+        run: |
+          go run ./tools/analysis/ifaceassert/cmd/ifaceassert ./...
+        working-directory: ./back
+
+      - name: Run vulnerability check
+        run: make audit
+        working-directory: ./back
+
+      - name: Run test
+        run: go test -race -failfast -count 1 ./...
+        working-directory: ./back
+
+      - name: Run integration test
+        env:
+          GOOSE_DRIVER: "postgres"
+          GOOSE_MIGRATION_DIR: "./migrations"
+          TEST_INTEGRATION_PG_PORT: "5432"
+          TEST_INTEGRATION_PG_DATABASE: "postgres"
+          TEST_INTEGRATION_PG_USER: "postgres"
+          TEST_INTEGRATION_PG_PASSWORD: "postgres"
+          TEST_INTEGRATION_GOOSE_DBSTRING: "host=127.0.0.1 port=5432 user=postgres password=postgres dbname=postgres sslmode=disable"
+        run: |
+          make tool-database-goose
+          export PATH="$(pwd)/bin:${PATH}"
+          ./tests/integration/run-in-docker-compose.sh
+        working-directory: ./back
+
+      - name: Build image
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          IMAGE_REF: ghcr.io/getklubok/klubok:audit-${{ github.run_id }}
+        run: docker build --rm -t "${IMAGE_REF}" --build-arg APP_VERSION="${REF_NAME}" -f ./build/Dockerfile .
+
+      # Non-blocking: the alpine base image is slow to patch its CVEs.
+      - name: Run Trivy vulnerability scanner for image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.2
+          scan-type: image
+          image-ref: ghcr.io/getklubok/klubok:audit-${{ github.run_id }}
+          scanners: "vuln,secret"
+          severity: "MEDIUM,HIGH,CRITICAL"
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+  audit-front:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run Trivy vulnerability scanner for code
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: v0.76.2
+          scan-type: fs
+          scan-ref: ./front
+          scanners: "vuln,secret,misconfig"
+          severity: "MEDIUM,HIGH,CRITICAL"
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+      - name: Run OWASP/cve-lite-cli for code
+        uses: OWASP/cve-lite-cli@35c473959a5ad6733f5ecdd7452410b284a9f71d # v1.41.0
+        with:
+          path: ./front
+          version: "1.41.0"
+          fail-on: high
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.0"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+        working-directory: ./front
+
+      - name: Run bun audit
+        run: bun audit --audit-level=high
+        working-directory: ./front
+
+      - name: Run linter
+        run: bun run lint
+        working-directory: ./front
+
+      - name: Run checker
+        run: bun run check
+        working-directory: ./front
+
+      - name: Run build
+        run: bun run build
+        working-directory: ./front

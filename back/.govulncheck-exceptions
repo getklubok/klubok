@@ -1,0 +1,21 @@
+# Audited vulnerability exceptions (scripts/vulncheck.sh). CI fails on any
+# CALLED vulnerability that is not listed here; every entry MUST carry a
+# reason and a revisit condition, and should be removed the moment the
+# toolchain or dependency moves.
+#
+# Format: the GO-XXXX-NNNN id must start the line, followed by a space or tab
+# and the reason. A colon right after the id ("GO-...: reason") or leading
+# spaces do NOT match and the gate still blocks. Lines starting with '#' are
+# comments.
+#
+# Example (commented out on purpose, not an active exception):
+# GO-2099-0001 module/path problem summary; why it is accepted and when to revisit
+
+# Empty on purpose since 2026-08-18. The one entry that stood here,
+# GO-2026-5856 (crypto/tls ECH client privacy leak), is fixed in go1.26.5 and
+# the toolchain is now 1.26.6, so the exception did what it promised and left.
+#
+# An empty list is the state to defend. Seven advisories landed between 13 and
+# 18 August and the answer was to move the toolchain, not to write seven
+# reasons here. Adding an entry means accepting a reachable vulnerability, so
+# it needs a reason somebody else can check and a condition that removes it.

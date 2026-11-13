@@ -1,0 +1,67 @@
+name: klubok
+
+services:
+  klubok_db:
+    image: postgres:17-alpine
+    container_name: klubok_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - klubok_db_data:/var/lib/postgresql/data
+    networks:
+      - klubok-network
+
+  klubok_blue:
+    depends_on:
+      - klubok_db
+    image: ghcr.io/getklubok/klubok:${APP_VERSION}
+    container_name: klubok_blue
+    labels:
+      - "app.project.name=klubok"
+      - "app.service.name=app"
+      - "app.service.type=all-in-one"
+      - "app.deployment.strategy=blue"
+      - "app.version=${APP_VERSION}"
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: klubok_db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      GOOSE_DRIVER: postgres
+      GOOSE_DBSTRING: "host=klubok_db port=5432 user=postgres password=postgres dbname=postgres sslmode=disable"
+      GOOSE_MIGRATION_DIR: ./migrations
+      APP_BASE_URL: "https://domain.tld"
+      HTTP_CORS_ALLOW_ORIGINS: "https://domain.tld"
+      COOKIE_DOMAIN: "domain.tld"
+      MAILER_HOST: "smtp.jino.ru"
+      MAILER_PORT: 465
+      MAILER_USERNAME: "no-reply@domain.tld"
+      MAILER_PASSWORD: "password"
+      MAILER_FROM: "Klubok <no-reply@domain.tld>"
+      FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED: false
+      FEATURE_CAPTCHA_ENABLED: false
+      FEATURE_CAPTCHA_PROVIDER: yandex
+      FEATURE_CAPTCHA_YANDEX_SERVER_KEY: "server_key"
+      FEATURE_CAPTCHA_YANDEX_SITE_KEY: "site_key"
+      FEATURE_IP_MASKING_ENABLED: false
+      FEATURE_IP_MASKING_V4_OCTETS: 3
+      FEATURE_IP_MASKING_V6_OCTETS: 7
+    volumes:
+      - ./privacy.md:/app/privacy.md:ro
+    ports:
+      - "127.0.0.1:50101:3000"
+      - "127.0.0.1:50103:3030"
+    networks:
+      - klubok-network
+
+volumes:
+  klubok_db_data:
+
+networks:
+  klubok-network:
+    external: true

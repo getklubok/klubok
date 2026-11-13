@@ -1,0 +1,15 @@
+services:
+  klubok_db_tests:
+    image: postgres:17-alpine
+    container_name: klubok_postgres_tests
+    environment:
+      POSTGRES_DB: "${TEST_INTEGRATION_PG_DATABASE}"
+      POSTGRES_USER: "${TEST_INTEGRATION_PG_USER}"
+      POSTGRES_PASSWORD: "${TEST_INTEGRATION_PG_PASSWORD}"
+    ports:
+      - "${TEST_INTEGRATION_PG_PORT}:5432"
+    volumes:
+      - klubok_db_tests_data:/var/lib/postgresql/data
+
+volumes:
+  klubok_db_tests_data:

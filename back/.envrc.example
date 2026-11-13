@@ -1,0 +1,69 @@
+# Это пример файла, содержащего переменные среды для настройки приложения.
+#
+# Скопируйте этот файл:
+#   cp .envrc.example .envrc
+#
+# Используйте direnv (https://direnv.net) для автоматической загрузки содержимого файла.
+
+# local, stage, prod
+export ENVIRONMENT="local"
+export LOG_LEVEL=debug
+
+export APP_BASE_URL="http://localhost:5173"
+
+export HTTP_PORT=5172
+export HTTP_CORS_ALLOW_ORIGINS="http://localhost:5173"
+
+export WEBSOCKET_PORT=5171
+
+export FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED=false
+
+export FEATURE_AUTH_EMAIL_ENABLED=true
+
+export FEATURE_AUTH_SSO_ENABLED=false
+export FEATURE_AUTH_SSO_ISSUER_URL="https://accounts.google.com"
+export FEATURE_AUTH_SSO_CLIENT_ID="799...734.apps.googleusercontent.com"
+export FEATURE_AUTH_SSO_CLIENT_SECRET="GOCSPX-..."
+export FEATURE_AUTH_SSO_REDIRECT_URL="http://localhost:5172/auth/sso/callback"
+
+export FEATURE_CAPTCHA_ENABLED=true
+export FEATURE_CAPTCHA_PROVIDER="yandex"
+export FEATURE_CAPTCHA_YANDEX_SERVER_KEY="server_key"
+
+export FEATURE_STATIC_CLAIMS_ENABLED=false
+export FEATURE_STATIC_CLAIMS_SESSION_ID=""
+export FEATURE_STATIC_CLAIMS_USER_ID=""
+
+export FEATURE_IP_MASKING_ENABLED=false
+export FEATURE_IP_MASKING_V4_OCTETS=3
+export FEATURE_IP_MASKING_V6_OCTETS=7
+
+export FEATURE_ALLOWED_EMAIL_DOMAINS_ENABLED=false
+export FEATURE_ALLOWED_EMAIL_DOMAINS_LIST="example.com,corp.example.com"
+
+export COOKIE_SECURE=false
+export COOKIE_DOMAIN=localhost
+
+export POSTGRES_HOST=127.0.0.1
+export POSTGRES_PORT=5432
+export POSTGRES_USER=postgres
+export POSTGRES_PASSWORD=postgres
+export POSTGRES_DB=postgres
+
+export GOOSE_DRIVER=postgres
+export GOOSE_DBSTRING="host=${POSTGRES_HOST} port=${POSTGRES_PORT} user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} dbname=${POSTGRES_DB} sslmode=disable"
+export GOOSE_MIGRATION_DIR=./migrations
+
+export MAILER_HOST="smtp.example.com"
+export MAILER_PORT=465
+export MAILER_USERNAME="no-reply@domain.tld"
+export MAILER_PASSWORD="password"
+export MAILER_FROM="Klubok <no-reply@domain.tld>"
+
+# for integration tests
+# host=127.0.0.1
+export TEST_INTEGRATION_PG_PORT=5433
+export TEST_INTEGRATION_PG_DATABASE=postgres
+export TEST_INTEGRATION_PG_USER=postgres
+export TEST_INTEGRATION_PG_PASSWORD=postgres
+export TEST_INTEGRATION_GOOSE_DBSTRING="host=127.0.0.1 port=${TEST_INTEGRATION_PG_PORT} user=${TEST_INTEGRATION_PG_USER} password=${TEST_INTEGRATION_PG_PASSWORD} dbname=${TEST_INTEGRATION_PG_DATABASE} sslmode=disable"

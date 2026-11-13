@@ -1,0 +1,1801 @@
+openapi: 3.0.2
+
+servers:
+  - url: /
+
+info:
+  title: Klubok API
+  version: 0.1.0
+  license:
+    name: AGPLv3
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+
+tags:
+  - name: RootService
+    description: Root service
+  - name: DiagramService
+    description: Diagram service
+  - name: UserService
+    description: User service
+
+security:
+  - sessionCookie: []
+
+paths:
+  /:
+    x-ogen-operation-group: Index
+    get:
+      security: []
+      summary: Get index.
+      operationId: Index
+      responses:
+        "200":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IndexResponse"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+      tags:
+        - RootService
+
+  /health/live:
+    x-ogen-operation-group: Health
+    get:
+      security: []
+      summary: Check liveness.
+      operationId: HealthLive
+      responses:
+        "204":
+          description: The process is alive.
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - RootService
+
+  /health/ready:
+    x-ogen-operation-group: Health
+    get:
+      security: []
+      summary: Check readiness.
+      operationId: HealthReady
+      responses:
+        "204":
+          description: The service is ready to accept traffic.
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+        "503":
+          description: A critical dependency is unavailable.
+      tags:
+        - RootService
+
+  /features:
+    x-ogen-operation-group: Features
+    get:
+      security: []
+      summary: Get feature flags.
+      operationId: Features
+      responses:
+        "200":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeaturesResponse"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - RootService
+
+  /diagrams:
+    x-ogen-operation-group: Diagram
+    get:
+      summary: List diagrams.
+      operationId: DiagramList
+      responses:
+        "200":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagramListResponse"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+    post:
+      summary: Create diagram.
+      operationId: DiagramCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiagramCreateRequest"
+      responses:
+        "201":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagramResponse"
+        "400":
+          $ref: "#/components/responses/StatusBadRequest"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+  /diagrams/import:
+    x-ogen-operation-group: Diagram
+    post:
+      summary: Import a diagram.
+      operationId: DiagramImport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiagramImportRequest"
+      responses:
+        "201":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagramResponse"
+        "400":
+          $ref: "#/components/responses/StatusBadRequest"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+  /diagrams/{diagramId}/title:
+    x-ogen-operation-group: Diagram
+    patch:
+      summary: Set title diagram.
+      operationId: DiagramSetTitle
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiagramSetTitleRequest"
+      responses:
+        "204":
+          description: A successful response.
+        "400":
+          $ref: "#/components/responses/StatusBadRequest"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+  /diagrams/{diagramId}:
+    x-ogen-operation-group: Diagram
+    get:
+      summary: Info diagram.
+      operationId: DiagramInfo
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+      responses:
+        "200":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagramInfoResponse"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+    delete:
+      summary: Delete diagram.
+      operationId: DiagramDelete
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+      responses:
+        "204":
+          description: A successful response.
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+  /diagrams/{diagramId}/stat:
+    x-ogen-operation-group: Diagram
+    get:
+      summary: Stat diagram.
+      operationId: DiagramStat
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+      responses:
+        "200":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagramStatResponse"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+  /diagrams/{diagramId}/onlineUsers:
+    x-ogen-operation-group: Diagram
+    get:
+      summary: Online users on diagram.
+      operationId: DiagramOnlineUsers
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+      responses:
+        "200":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagramOnlineUsersResponse"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+  /diagrams/{diagramId}/clone:
+    x-ogen-operation-group: Diagram
+    post:
+      summary: Clone a diagram with all its contents.
+      operationId: DiagramClone
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+      responses:
+        "201":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagramResponse"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "404":
+          $ref: "#/components/responses/StatusNotFound"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+
+  /diagrams/{diagramId}/collaborators:
+    x-ogen-operation-group: Collaborator
+    get:
+      summary: List collaborators on diagram.
+      operationId: CollaboratorList
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+      responses:
+        "200":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollaboratorListResponse"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+    post:
+      summary: Upsert collaborator on diagram.
+      operationId: CollaboratorUpsert
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollaboratorUpsertRequest"
+      responses:
+        "200":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollaboratorUpsertResponse"
+        "400":
+          $ref: "#/components/responses/StatusBadRequest"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "404":
+          $ref: "#/components/responses/StatusNotFound"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+  /diagrams/{diagramId}/collaborators/{collaboratorId}:
+    x-ogen-operation-group: Collaborator
+    delete:
+      summary: Delete collaborator on diagram.
+      operationId: CollaboratorDelete
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+        - name: collaboratorId
+          description: Collaborator ID
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/ulid"
+      responses:
+        "204":
+          description: A successful response.
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+
+  /diagrams/{diagramId}/shapes:
+    x-ogen-operation-group: Shape
+    post:
+      summary: Upsert shape on diagram.
+      operationId: ShapeUpsert
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShapeUpsertRequest"
+      responses:
+        "204":
+          description: A successful response.
+        "400":
+          $ref: "#/components/responses/StatusBadRequest"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+  /diagrams/{diagramId}/shapes/batch:
+    x-ogen-operation-group: Shape
+    post:
+      summary: Batch upsert shapes on diagram.
+      operationId: ShapeBatchUpsert
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShapeBatchUpsertRequest"
+      responses:
+        "204":
+          description: A successful response.
+        "400":
+          $ref: "#/components/responses/StatusBadRequest"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+  /diagrams/{diagramId}/shapes/{diagramShapeId}:
+    x-ogen-operation-group: Shape
+    delete:
+      summary: Delete shape on diagram.
+      operationId: ShapeDelete
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+        - name: diagramShapeId
+          $ref: "#/components/parameters/DiagramShapeId"
+      responses:
+        "204":
+          description: A successful response.
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+
+  /diagrams/{diagramId}/connections:
+    x-ogen-operation-group: Connection
+    post:
+      summary: Upsert connection on diagram.
+      operationId: ConnectionUpsert
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectionUpsertRequest"
+      responses:
+        "204":
+          description: A successful response.
+        "400":
+          $ref: "#/components/responses/StatusBadRequest"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+  /diagrams/{diagramId}/connections/batch:
+    x-ogen-operation-group: Connection
+    post:
+      summary: Batch upsert connections on diagram.
+      operationId: ConnectionBatchUpsert
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConnectionBatchUpsertRequest"
+      responses:
+        "204":
+          description: A successful response.
+        "400":
+          $ref: "#/components/responses/StatusBadRequest"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+  /diagrams/{diagramId}/connections/{fromShapeId}/{toShapeId}:
+    x-ogen-operation-group: Connection
+    delete:
+      summary: Delete connection on diagram.
+      operationId: ConnectionDelete
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+        - name: fromShapeId
+          description: From shape ID
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/ulid"
+        - name: toShapeId
+          description: To shape ID
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/ulid"
+      responses:
+        "204":
+          description: A successful response.
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+
+  /diagrams/{diagramId}/comments/{diagramShapeId}:
+    x-ogen-operation-group: Comment
+    get:
+      summary: List comments on diagram.
+      operationId: CommentList
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+        - name: diagramShapeId
+          $ref: "#/components/parameters/DiagramShapeId"
+      responses:
+        "200":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentListResponse"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+    post:
+      summary: Create comment on diagram.
+      operationId: CommentCreate
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+        - name: diagramShapeId
+          $ref: "#/components/parameters/DiagramShapeId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentCreateRequest"
+      responses:
+        "201":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentCreateResponse"
+        "400":
+          $ref: "#/components/responses/StatusBadRequest"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+
+  /users/register:
+    x-ogen-operation-group: User
+    post:
+      security: []
+      summary: Register user.
+      operationId: UserRegister
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRegisterRequest"
+      responses:
+        "200":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserRegisterResponse"
+        "400":
+          $ref: "#/components/responses/StatusBadRequest"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "409":
+          $ref: "#/components/responses/StatusConflict"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - UserService
+  /users/activate:
+    x-ogen-operation-group: User
+    post:
+      security: []
+      summary: Activate user.
+      operationId: UserActivate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserActivateRequest"
+      responses:
+        "204":
+          description: A successful response.
+          headers:
+            Set-Cookie:
+              description: Set user session cookie.
+              schema:
+                type: string
+                example:
+                  "GIG_CID=01JHHXTVAMTYVE7Q3H6VRP7206; Path=/; Domain=localhost;
+                  Expires=Thu, 19 Dec 2024 14:15:00 GMT; HttpOnly; Secure;
+                  SameSite=Strict"
+        "400":
+          $ref: "#/components/responses/StatusBadRequest"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "404":
+          $ref: "#/components/responses/StatusNotFound"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - UserService
+  /users/login:
+    x-ogen-operation-group: User
+    post:
+      security: []
+      summary: Login user.
+      operationId: UserLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserLoginRequest"
+      responses:
+        "204":
+          description: A successful response.
+        "400":
+          $ref: "#/components/responses/StatusBadRequest"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "404":
+          $ref: "#/components/responses/StatusNotFound"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - UserService
+  /users/login/verify:
+    x-ogen-operation-group: User
+    post:
+      security: []
+      summary: Login verify user.
+      operationId: UserLoginVerify
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserLoginVerifyRequest"
+      responses:
+        "204":
+          description: A successful response.
+          headers:
+            Set-Cookie:
+              description: Set user session cookie.
+              schema:
+                type: string
+                example:
+                  "GIG_CID=01JHHXTVAMTYVE7Q3H6VRP7206; Path=/; Domain=localhost;
+                  Expires=Thu, 19 Dec 2024 14:15:00 GMT; HttpOnly; Secure;
+                  SameSite=Strict"
+        "400":
+          $ref: "#/components/responses/StatusBadRequest"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "404":
+          $ref: "#/components/responses/StatusNotFound"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - UserService
+  /users/logout:
+    x-ogen-operation-group: User
+    delete:
+      summary: Logout current user.
+      operationId: UserLogout
+      responses:
+        "204":
+          description: A successful response.
+          headers:
+            Set-Cookie:
+              description: Clear user session cookie.
+              schema:
+                type: string
+                example:
+                  "GIG_CID=; Path=/; Domain=localhost; Expires=Thu, 01 Jan 1970 00:00:00
+                  GMT; Max-Age=0; HttpOnly; Secure; SameSite=Strict"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - UserService
+  /users/fake:
+    x-ogen-operation-group: User
+    post:
+      security: []
+      summary: Create fake user.
+      operationId: UserFake
+      responses:
+        "200":
+          description: A successful response.
+          headers:
+            Set-Cookie:
+              description: Set user session cookie.
+              schema:
+                type: string
+                example:
+                  "GIG_CID=01JHHXTVAMTYVE7Q3H6VRP7206; Path=/; Domain=localhost;
+                  Expires=Thu, 19 Dec 2024 14:15:00 GMT; HttpOnly; Secure;
+                  SameSite=Strict"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserMeResponse"
+        "404":
+          $ref: "#/components/responses/StatusNotFound"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - UserService
+  /auth/sso/login:
+    x-ogen-operation-group: SSO
+    get:
+      security: []
+      summary: Start SSO login.
+      operationId: SSOLogin
+      responses:
+        "302":
+          description: Redirect to OIDC provider.
+          headers:
+            Location:
+              description: OIDC authorization URL.
+              required: true
+              schema:
+                type: string
+            Set-Cookie:
+              description: SSO state cookie.
+              required: true
+              schema:
+                type: string
+        "404":
+          $ref: "#/components/responses/StatusNotFound"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - UserService
+  /auth/sso/callback:
+    x-ogen-operation-group: SSO
+    get:
+      security: []
+      summary: SSO callback from provider.
+      operationId: SSOCallback
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: sso_state
+          in: cookie
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "302":
+          description: Redirect to app with session cookie.
+          headers:
+            Location:
+              description: Redirect target.
+              required: true
+              schema:
+                type: string
+            Set-Cookie:
+              description: Set user session cookie.
+              required: true
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/StatusBadRequest"
+        "404":
+          $ref: "#/components/responses/StatusNotFound"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - UserService
+  /users/me:
+    x-ogen-operation-group: User
+    get:
+      summary: Get current user.
+      operationId: UserMe
+      responses:
+        "200":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserMeResponse"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - UserService
+
+  /diagrams/{diagramId}/embeds:
+    x-ogen-operation-group: Embed
+    post:
+      summary: Create embed code for diagram.
+      operationId: EmbedCreate
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+      responses:
+        "201":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmbedInfoResponse"
+        "400":
+          $ref: "#/components/responses/StatusBadRequest"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+    get:
+      summary: List embed codes for diagram.
+      operationId: EmbedList
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+      responses:
+        "200":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmbedListResponse"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+  /diagrams/{diagramId}/embeds/{embedId}:
+    x-ogen-operation-group: Embed
+    get:
+      summary: Get embed code info.
+      operationId: EmbedGet
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+        - name: embedId
+          $ref: "#/components/parameters/EmbedId"
+      responses:
+        "200":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmbedInfoResponse"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "404":
+          $ref: "#/components/responses/StatusNotFound"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+    delete:
+      summary: Revoke embed code (soft-delete).
+      operationId: EmbedDelete
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+        - name: embedId
+          $ref: "#/components/parameters/EmbedId"
+      responses:
+        "204":
+          description: A successful response.
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "404":
+          $ref: "#/components/responses/StatusNotFound"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+
+  /embed/{token}:
+    x-ogen-operation-group: EmbedPublic
+    get:
+      security: []
+      summary: Get embed data by public token for iframe.
+      operationId: EmbedData
+      parameters:
+        - name: token
+          description: Embed token
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 64
+            maxLength: 64
+      responses:
+        "200":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmbedDataResponse"
+        "404":
+          $ref: "#/components/responses/StatusNotFound"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: KLUBOK_SID
+
+  responses:
+    StatusBadRequest:
+      description: Invalid request parameters.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/generalError"
+    StatusUnauthorized:
+      description: Authentication required.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/generalError"
+    StatusForbidden:
+      description: Forbidden action.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/generalError"
+    StatusNotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/generalError"
+    StatusConflict:
+      description: Resource already exists.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/generalError"
+    StatusTooManyRequests:
+      description: Too many requests.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/generalError"
+    StatusInternalServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/generalError"
+
+  parameters:
+    DiagramId:
+      name: diagramId
+      description: Diagram ID
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ulid"
+    DiagramShapeId:
+      name: diagramShapeId
+      description: Diagram shape ID
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ulid"
+    EmbedId:
+      name: embedId
+      description: Embed ID
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ulid"
+
+  schemas:
+    ulid:
+      type: string
+      description: ID
+      example: 01KM5CJP5ZHAGX8MJ0CN6988AF
+      pattern: ^[0-9A-HJKMNP-TV-Z]{26}$
+      x-nullable: false
+    email:
+      type: string
+      description: User email address
+      example: user@domain.tld
+      pattern: ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$
+      minLength: 3
+      maxLength: 255
+      x-nullable: false
+    username:
+      type: string
+      description: Username
+      example: dimnik
+      pattern: ^[a-z0-9]+$
+      minLength: 1
+      maxLength: 50
+      x-nullable: false
+    diagramTitle:
+      type: string
+      description: Diagram title
+      minLength: 1
+      maxLength: 255
+      x-nullable: false
+    datetime:
+      type: string
+      description: Datetime
+      format: date-time
+      example: 2020-01-01T00:00:00.000Z
+      x-nullable: false
+    generalError:
+      type: object
+      properties:
+        message:
+          type: string
+          x-nullable: true
+
+    EmbedInfoResponse:
+      type: object
+      properties:
+        embed:
+          $ref: "#/components/schemas/EmbedInfo"
+      required:
+        - embed
+    EmbedListResponse:
+      type: object
+      properties:
+        embeds:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmbedInfo"
+      required:
+        - embeds
+    EmbedDataResponse:
+      type: object
+      properties:
+        diagramInfo:
+          $ref: "#/components/schemas/DiagramInfo"
+      required:
+        - diagramInfo
+
+    IndexResponse:
+      type: object
+      properties:
+        name:
+          type: string
+          x-nullable: false
+      required:
+        - name
+
+    FeaturesResponse:
+      type: object
+      properties:
+        captcha:
+          $ref: "#/components/schemas/FeaturesCaptcha"
+        authEmail:
+          $ref: "#/components/schemas/FeaturesAuthEmail"
+        authSso:
+          $ref: "#/components/schemas/FeaturesAuthSso"
+      required:
+        - captcha
+        - authEmail
+        - authSso
+
+    DiagramResponse:
+      type: object
+      properties:
+        diagram:
+          $ref: "#/components/schemas/Diagram"
+      required:
+        - diagram
+
+    DiagramListResponse:
+      type: object
+      properties:
+        diagrams:
+          type: array
+          items:
+            type: object
+            $ref: "#/components/schemas/Diagram"
+      required:
+        - diagrams
+    DiagramCreateRequest:
+      type: object
+      properties:
+        title:
+          $ref: "#/components/schemas/diagramTitle"
+      required:
+        - title
+    DiagramImportRequest:
+      type: object
+      properties:
+        title:
+          $ref: "#/components/schemas/diagramTitle"
+        shapes:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiagramShape"
+          minItems: 1
+        connections:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiagramConnection"
+      required:
+        - title
+        - shapes
+        - connections
+    DiagramSetTitleRequest:
+      type: object
+      properties:
+        title:
+          $ref: "#/components/schemas/diagramTitle"
+      required:
+        - title
+    DiagramInfoResponse:
+      type: object
+      properties:
+        diagramInfo:
+          $ref: "#/components/schemas/DiagramInfo"
+      required:
+        - diagramInfo
+    DiagramStatResponse:
+      type: object
+      properties:
+        websocketConnections:
+          type: integer
+          format: int32
+          x-nullable: false
+        cursorPositions:
+          type: array
+          items:
+            type: object
+            $ref: "#/components/schemas/CursorPosition"
+      required:
+        - websocketConnections
+        - cursorPositions
+    DiagramOnlineUsersResponse:
+      type: object
+      properties:
+        onlineUsers:
+          type: array
+          items:
+            type: object
+            $ref: "#/components/schemas/OnlineUser"
+      required:
+        - onlineUsers
+
+    CollaboratorListResponse:
+      type: object
+      properties:
+        collaborators:
+          type: array
+          items:
+            type: object
+            $ref: "#/components/schemas/DiagramCollaborator"
+      required:
+        - collaborators
+    CollaboratorUpsertRequest:
+      type: object
+      properties:
+        userNameOrEmail:
+          type: string
+          description: User name or email
+          minLength: 1
+          maxLength: 255
+          x-nullable: false
+        permission:
+          $ref: "#/components/schemas/DiagramCollaboratorPermissionEnum"
+      required:
+        - userNameOrEmail
+        - permission
+    CollaboratorUpsertResponse:
+      type: object
+      properties:
+        collaborator:
+          $ref: "#/components/schemas/DiagramCollaborator"
+      required:
+        - collaborator
+
+    ShapeUpsertRequest:
+      type: object
+      properties:
+        shape:
+          $ref: "#/components/schemas/DiagramShape"
+      required:
+        - shape
+    ShapeBatchUpsertRequest:
+      type: object
+      properties:
+        shapes:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiagramShape"
+          minItems: 1
+          maxItems: 100
+      required:
+        - shapes
+    ConnectionUpsertRequest:
+      type: object
+      properties:
+        connection:
+          $ref: "#/components/schemas/DiagramConnection"
+      required:
+        - connection
+    ConnectionBatchUpsertRequest:
+      type: object
+      properties:
+        connections:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiagramConnection"
+          minItems: 1
+          maxItems: 100
+      required:
+        - connections
+
+    CommentListResponse:
+      type: object
+      properties:
+        comments:
+          type: array
+          items:
+            type: object
+            $ref: "#/components/schemas/DiagramComment"
+      required:
+        - comments
+    CommentCreateRequest:
+      type: object
+      properties:
+        text:
+          type: string
+          description: Comment text
+          minLength: 1
+          x-nullable: false
+      required:
+        - text
+    CommentCreateResponse:
+      type: object
+      properties:
+        comment:
+          $ref: "#/components/schemas/DiagramComment"
+      required:
+        - comment
+
+    UserRegisterRequest:
+      type: object
+      properties:
+        email:
+          $ref: "#/components/schemas/email"
+        username:
+          $ref: "#/components/schemas/username"
+        captchaToken:
+          type: string
+          description: Captcha token
+          x-nullable: false
+      required:
+        - email
+        - username
+        - captchaToken
+    UserRegisterResponse:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ulid"
+        email:
+          $ref: "#/components/schemas/email"
+        username:
+          $ref: "#/components/schemas/username"
+      required:
+        - id
+        - email
+        - username
+    UserActivateRequest:
+      type: object
+      properties:
+        userId:
+          description: User ID
+          $ref: "#/components/schemas/ulid"
+        code:
+          type: string
+          description: User activation code
+          minLength: 1
+          x-nullable: false
+      required:
+        - userId
+        - code
+    UserLoginRequest:
+      type: object
+      properties:
+        email:
+          $ref: "#/components/schemas/email"
+        captchaToken:
+          type: string
+          description: Captcha token
+          x-nullable: false
+      required:
+        - email
+        - captchaToken
+    UserLoginVerifyRequest:
+      type: object
+      properties:
+        email:
+          $ref: "#/components/schemas/email"
+        code:
+          type: string
+          description: User verification code
+          x-nullable: false
+      required:
+        - email
+        - code
+    UserMeResponse:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ulid"
+        email:
+          $ref: "#/components/schemas/email"
+        username:
+          $ref: "#/components/schemas/username"
+        isFake:
+          type: boolean
+          description: Whether the account is an automatically created fake account
+          x-nullable: false
+      required:
+        - id
+        - email
+        - username
+        - isFake
+
+    FeaturesCaptcha:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: Captcha is enabled.
+          x-nullable: false
+        siteKey:
+          type: string
+          description: Public captcha site key.
+          x-nullable: false
+      required:
+        - enabled
+        - siteKey
+
+    FeaturesAuthEmail:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: Email login is enabled.
+          x-nullable: false
+      required:
+        - enabled
+
+    FeaturesAuthSso:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: SSO login is enabled.
+          x-nullable: false
+      required:
+        - enabled
+
+    Diagram:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ulid"
+        title:
+          $ref: "#/components/schemas/diagramTitle"
+        permission:
+          $ref: "#/components/schemas/DiagramCollaboratorPermissionEnum"
+        hasCollaborators:
+          type: boolean
+          x-nullable: false
+        createdAt:
+          $ref: "#/components/schemas/datetime"
+        updatedAt:
+          $ref: "#/components/schemas/datetime"
+      required:
+        - id
+        - title
+        - permission
+        - hasCollaborators
+        - createdAt
+        - updatedAt
+
+    DiagramInfo:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ulid"
+        title:
+          $ref: "#/components/schemas/diagramTitle"
+        permission:
+          $ref: "#/components/schemas/DiagramCollaboratorPermissionEnum"
+        shapes:
+          type: array
+          items:
+            type: object
+            $ref: "#/components/schemas/DiagramShape"
+        connections:
+          type: array
+          items:
+            type: object
+            $ref: "#/components/schemas/DiagramConnection"
+        shapeCommentStats:
+          type: array
+          items:
+            type: object
+            $ref: "#/components/schemas/DiagramShapeCommentStats"
+      required:
+        - id
+        - title
+        - permission
+        - shapes
+        - connections
+        - shapeCommentStats
+
+    DiagramShapeCommentStats:
+      type: object
+      properties:
+        shapeId:
+          $ref: "#/components/schemas/ulid"
+        commentCount:
+          type: integer
+          format: int32
+          x-nullable: false
+      required:
+        - shapeId
+        - commentCount
+
+    DiagramShape:
+      type: object
+      properties:
+        id:
+          description: ID.
+          $ref: "#/components/schemas/ulid"
+        tp:
+          $ref: "#/components/schemas/DiagramShapeTypeEnum"
+        l:
+          type: number
+          format: double
+          description: Left.
+          x-nullable: false
+        t:
+          type: number
+          format: double
+          description: Top.
+          x-nullable: false
+        w:
+          type: number
+          format: double
+          description: Width.
+          x-nullable: false
+        h:
+          type: number
+          format: double
+          description: Height.
+          x-nullable: false
+        sx:
+          type: number
+          format: double
+          description: Scale X.
+          x-nullable: false
+        sy:
+          type: number
+          format: double
+          description: Scale Y.
+          x-nullable: false
+        fc:
+          type: string
+          example: "#000000"
+          description: Fill color. Accepts HEX color code or "transparent".
+          pattern: ^(#[0-9A-Fa-f]{6}|transparent)$
+          x-nullable: false
+        sc:
+          type: string
+          example: "#000000"
+          description: Stroke color. Accepts HEX color code or "transparent".
+          pattern: ^(#[0-9A-Fa-f]{6}|transparent)$
+          x-nullable: false
+        txt:
+          type: string
+          description: Text.
+          minLength: 1
+          x-nullable: false
+        o:
+          type: string
+          description: Order key for layering
+          x-nullable: false
+      required:
+        - id
+        - tp
+        - l
+        - t
+        - w
+        - h
+        - sx
+        - sy
+        - fc
+        - sc
+        - txt
+        - o
+
+    DiagramConnection:
+      type: object
+      properties:
+        fid:
+          description: From shape ID
+          $ref: "#/components/schemas/ulid"
+        tid:
+          description: To shape ID
+          $ref: "#/components/schemas/ulid"
+      required:
+        - fid
+        - tid
+
+    DiagramCollaborator:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ulid"
+        diagramId:
+          $ref: "#/components/schemas/ulid"
+        userName:
+          $ref: "#/components/schemas/username"
+        permission:
+          $ref: "#/components/schemas/DiagramCollaboratorPermissionEnum"
+        createdAt:
+          $ref: "#/components/schemas/datetime"
+        updatedAt:
+          $ref: "#/components/schemas/datetime"
+      required:
+        - id
+        - diagramId
+        - userName
+        - permission
+        - createdAt
+        - updatedAt
+
+    DiagramComment:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ulid"
+        userName:
+          $ref: "#/components/schemas/username"
+        text:
+          type: string
+          x-nullable: false
+        createdAt:
+          $ref: "#/components/schemas/datetime"
+      required:
+        - id
+        - userName
+        - text
+        - createdAt
+
+    OnlineUser:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ulid"
+        userName:
+          $ref: "#/components/schemas/username"
+      required:
+        - id
+        - userName
+
+    CursorPosition:
+      type: object
+      properties:
+        userId:
+          $ref: "#/components/schemas/ulid"
+        userName:
+          $ref: "#/components/schemas/username"
+        "x":
+          type: number
+          format: double
+          x-nullable: false
+        "y":
+          type: number
+          format: double
+          x-nullable: false
+      required:
+        - userId
+        - userName
+        - "x"
+        - "y"
+
+    EmbedInfo:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ulid"
+        embedCode:
+          type: string
+        isActive:
+          type: boolean
+        viewsCount:
+          type: integer
+          format: int32
+        lastViewedAt:
+          $ref: "#/components/schemas/datetime"
+          x-nullable: true
+        createdAt:
+          $ref: "#/components/schemas/datetime"
+        updatedAt:
+          $ref: "#/components/schemas/datetime"
+      required:
+        - id
+        - embedCode
+        - isActive
+        - viewsCount
+        - createdAt
+        - updatedAt
+
+    DiagramShapeTypeEnum:
+      type: string
+      enum:
+        - S
+        - E
+        - D
+        - B
+        - T
+      title: |-
+        - S: SQUARE
+        - E: ELLIPSE
+        - D: DIAMOND
+        - B: BOX
+        - T: TEXT
+
+    DiagramCollaboratorPermissionEnum:
+      type: string
+      enum:
+        - OWNER
+        - VIEW
+        - EDIT
