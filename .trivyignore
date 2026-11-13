@@ -1,0 +1,12 @@
+# Example:
+# Dependency constraint - waiting for library update (esbuild 0.19.12)
+# GHSA-67mh-4wv8-2f99 exp:2026-03-01
+
+# libcrypto3, libssl3 in alpine 3.23
+CVE-2026-14456 exp:2026-12-31
+CVE-2026-18798 exp:2026-12-31
+CVE-2026-63072 exp:2026-12-31
+CVE-2026-63076 exp:2026-12-31
+
+# zlib in alpine 3.23
+CVE-2026-4738 exp:2026-12-31

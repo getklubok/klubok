@@ -1,0 +1,20 @@
+resolve-type-alias: false
+disable-version-string: true
+issue-845-fix: true
+with-expecter: true
+disable-config-search: true
+all: true
+dir: "{{.InterfaceDir}}/mocks"
+mockname: "{{.InterfaceName}}Mock"
+filename: "{{.InterfaceName | snakecase}}_mock.go"
+outpkg: "mocks"
+packages:
+  klubok/internal/application/middleware/auth:
+  klubok/internal/application/service/diagram:
+  klubok/internal/application/service/embed:
+  klubok/internal/application/service/mailer:
+  klubok/internal/application/service/permission:
+  klubok/internal/application/service/session:
+  klubok/internal/application/service/user:
+  klubok/internal/application/websocket:
+  klubok/internal/restapi/handler:

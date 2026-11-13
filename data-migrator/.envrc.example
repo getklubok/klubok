@@ -1,0 +1,19 @@
+# Это пример файла, содержащего переменные среды для настройки приложения.
+#
+# Скопируйте этот файл:
+#   cp .envrc.example .envrc
+#
+# Используйте direnv (https://direnv.net) для автоматической загрузки содержимого файла.
+
+export POSTGRES_HOST=klubok_db
+export POSTGRES_PORT=5432
+export POSTGRES_DB=postgres
+export POSTGRES_USER=postgres
+export POSTGRES_PASSWORD=postgres
+
+# for integration tests
+# host=127.0.0.1
+export TEST_INTEGRATION_PG_PORT=5433
+export TEST_INTEGRATION_PG_DATABASE=postgres
+export TEST_INTEGRATION_PG_USER=postgres
+export TEST_INTEGRATION_PG_PASSWORD=postgres

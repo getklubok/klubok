@@ -1,0 +1,8 @@
+/.github/       @DimNS
+/build/         @DimNS
+/deploy/        @DimNS
+/scripts/       @DimNS
+/.dockerignore  @DimNS
+/.trivyignore   @DimNS
+/Makefile       @DimNS
+/trivy.yaml     @DimNS

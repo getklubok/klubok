@@ -1,0 +1,147 @@
+name: build
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-release
+  cancel-in-progress: false
+
+jobs:
+  build-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # Публикация ждёт апрува environment "release". Required reviewers задаются в настройках репозитория.
+    environment: release
+    permissions:
+      contents: read
+      packages: write
+      actions: read
+    steps:
+      - name: Validate tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          [[ "$TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo "Invalid tag: $TAG (expected vX.Y.Z)"
+            exit 1
+          }
+
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Ensure tag is on master
+        run: git merge-base --is-ancestor HEAD origin/master
+
+      - name: Ensure audit passed for this commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAX_AUDIT_AGE_DAYS: 7
+        run: |
+          SHA=$(git rev-parse HEAD)
+          RUNS=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow audit.yml --commit "$SHA" \
+            --json event,headBranch,conclusion,createdAt --limit 20)
+          if ! jq -e --argjson max_age "$MAX_AUDIT_AGE_DAYS" '
+            any(.[]; (.event == "push" or .event == "schedule") and .headBranch == "master" and .conclusion == "success"
+              and ((now - (.createdAt | fromdateiso8601)) <= ($max_age * 86400)))
+          ' <<<"$RUNS" >/dev/null; then
+            echo "❌ Нет свежего успешного audit (push или schedule, не старше ${MAX_AUDIT_AGE_DAYS} дн.) для $SHA."
+            echo "Дождитесь зелёного audit на master и запустите сборку снова."
+            exit 1
+          fi
+
+      - name: Display tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: echo "$TAG"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Ensure image tag is not already published
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          IMAGE="ghcr.io/getklubok/klubok:${VERSION#v}"
+          if OUTPUT=$(docker buildx imagetools inspect "$IMAGE" 2>&1); then
+            echo "❌ Образ $IMAGE уже опубликован. Перезапись по push тега запрещена."
+            exit 1
+          fi
+          if ! grep -qiE 'not found|manifest unknown|no such manifest' <<<"$OUTPUT"; then
+            echo "❌ Не удалось проверить наличие $IMAGE:"
+            echo "$OUTPUT"
+            exit 1
+          fi
+
+      - name: Build and Push image
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          VERSION_NO_V="${VERSION#v}"
+          MINOR="${VERSION_NO_V%.*}"
+          LATEST_TAG=$(git tag --merged origin/master -l 'v[0-9]*' --sort=-v:refname | grep -Ex 'v[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || true)
+          LATEST_MINOR_TAG=$(git tag --merged origin/master -l "v${MINOR}.*" --sort=-v:refname | grep -Ex "v${MINOR//./\\.}\.[0-9]+" | head -n1 || true)
+          PUSH_LATEST=false
+          if [ "$VERSION_NO_V" = "${LATEST_TAG#v}" ]; then
+            PUSH_LATEST=true
+          fi
+          PUSH_MINOR=false
+          if [ "$VERSION_NO_V" = "${LATEST_MINOR_TAG#v}" ]; then
+            PUSH_MINOR=true
+          fi
+          make PUSH=true PUSH_LATEST="$PUSH_LATEST" PUSH_MINOR="$PUSH_MINOR" APP_VERSION="$VERSION_NO_V" build-docker
+
+  changelog:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    needs: build-image
+    permissions:
+      contents: read
+    outputs:
+      changes: ${{ steps.changelog.outputs.changes }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Generate Changelog
+        id: changelog
+        uses: requarks/changelog-action@7ce6be4c4d2233ae2a943694ca34f23aeafa1054 # v1.11.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref_name }}
+          writeToFile: false
+          excludeTypes: ""
+          includeInvalidCommits: true
+
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    needs: [build-image, changelog]
+    permissions:
+      contents: write
+    steps:
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
+        with:
+          tag: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: ${{ needs.changelog.outputs.changes }}
+          token: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,30 @@
+{{define "content"}}
+<table width="600" cellpadding="0" cellspacing="0" border="0" align="center" style="text-align: center">
+    <tr>
+        <td>Ваш одноразовый код для входа:</td>
+    </tr>
+    <tr>
+        <td style="padding: 30px">
+            <code style="background-color: #eee; padding: 15px; font-size: 30px">{{.code}}</code>
+        </td>
+    </tr>
+    <tr>
+        <td>Пожалуйста, используйте этот код для входа в Klubok.</td>
+    </tr>
+    <tr>
+        <td height="20" style="font-size: 20px; line-height: 20px">&nbsp;</td>
+    </tr>
+    <tr>
+        <td style="font-size: 14px; color: #868e96;">Срок действия этого кода истекает через {{.timeString}}.</td>
+    </tr>
+    <tr>
+        <td height="20" style="font-size: 20px; line-height: 20px">&nbsp;</td>
+    </tr>
+    <tr>
+        <td style="font-size: 14px; color: #868e96;">
+            Если вы не запрашивали код для входа в Klubok, вы можете спокойно проигнорировать это письмо. Возможно,
+            кто-то другой по ошибке ввёл ваш адрес электронной почты.
+        </td>
+    </tr>
+</table>
+{{end}}

@@ -1,0 +1,42 @@
+@import '@fontsource/pt-sans';
+
+:root {
+    --diagram-bg: #f8f9fa;
+    /* Оверлей поверх фона диаграммы; фолбэк для color-mix(in srgb, var(--diagram-bg) 95%, transparent) */
+    --diagram-bg-overlay: rgba(248, 249, 250, 0.95);
+    --surface-bg: rgba(255, 255, 255, 0.9);
+    --text-color: #333;
+    --border-color: rgba(0, 0, 0, 0.08);
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.theme-dark {
+    --diagram-bg: #1a1a2e;
+    --diagram-bg-overlay: rgba(26, 26, 46, 0.95);
+    --surface-bg: rgba(30, 30, 50, 0.92);
+    --text-color: #e0e0e0;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+body {
+    font-family: 'PT Sans', sans-serif;
+    padding: 0;
+    margin: 0;
+    color: var(--text-color);
+}
+
+/* Override Bootstrap placeholder color to be lighter */
+::placeholder {
+    color: #adb5bd !important;
+    opacity: 1;
+}
+
+::-ms-input-placeholder {
+    color: #adb5bd !important;
+}
+
+::-moz-placeholder {
+    color: #adb5bd !important;
+    opacity: 1;
+}
