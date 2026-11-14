@@ -92,27 +92,6 @@ func Run() error { //nolint:gocognit,gocyclo,cyclop,maintidx // It's ok
 		defer emailWorker.Stop()
 	}
 
-	mMetrics := metrics.New(log, func() int { return len(emailCh) })
-	metricsServer := metrics.NewServer(
-		metrics.ServerConfig{
-			Metrics: mMetrics,
-			DB: metrics.ServerConfigDB{
-				Pool: dbpool,
-				Name: cfg.Postgres.DSN.Database,
-			},
-			HTTP: metrics.ServerConfigHTTP{
-				Port: cfg.Metrics.Port,
-
-				ReadTimeout:       cfg.Metrics.ReadTimeout,
-				ReadHeaderTimeout: cfg.Metrics.ReadHeaderTimeout,
-				WriteTimeout:      cfg.Metrics.WriteTimeout,
-				IdleTimeout:       cfg.Metrics.IdleTimeout,
-			},
-		},
-		log,
-	)
-	defer metricsServer.Stop()
-
 	tracerMiddleware, tracerCleanup, err := initTracer(ctx, cfg, log)
 	if err != nil {
 		return fmt.Errorf("init tracer: %w", err)
@@ -150,6 +129,28 @@ func Run() error { //nolint:gocognit,gocyclo,cyclop,maintidx // It's ok
 		log,
 	)
 	defer wsManager.Stop()
+
+	mMetrics := metrics.New(log, func() int { return len(emailCh) }, wsManager.ConnectionCount)
+	metricsServer := metrics.NewServer(
+		metrics.ServerConfig{
+			Metrics: mMetrics,
+			DB: metrics.ServerConfigDB{
+				Pool: dbpool,
+				Name: cfg.Postgres.DSN.Database,
+			},
+			HTTP: metrics.ServerConfigHTTP{
+				Port: cfg.Metrics.Port,
+
+				ReadTimeout:       cfg.Metrics.ReadTimeout,
+				ReadHeaderTimeout: cfg.Metrics.ReadHeaderTimeout,
+				WriteTimeout:      cfg.Metrics.WriteTimeout,
+				IdleTimeout:       cfg.Metrics.IdleTimeout,
+			},
+		},
+		log,
+	)
+	defer metricsServer.Stop()
+
 	go func() {
 		if err := wsManager.Start(); err != nil {
 			panic(fmt.Errorf("start websocket: %w", err))

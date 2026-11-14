@@ -51,6 +51,7 @@ func NewServer(cfg ServerConfig, log *zap.Logger) *Server {
 		cfg.Metrics.HTTPRequestsCurrent,
 		cfg.Metrics.HTTPRequestDurationSeconds,
 		cfg.Metrics.EmailChannelSize,
+		cfg.Metrics.WSConnectionsCurrent,
 	)
 
 	httpServer := &http.Server{

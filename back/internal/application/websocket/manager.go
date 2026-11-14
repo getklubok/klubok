@@ -238,6 +238,14 @@ func (wm *Manager) GetDiagramUsers(diagramID domain.DiagramID) []domain.WebSocke
 	return users
 }
 
+// ConnectionCount возвращает количество активных WebSocket соединений.
+func (wm *Manager) ConnectionCount() int {
+	wm.muConn.RLock()
+	defer wm.muConn.RUnlock()
+
+	return len(wm.connInfo)
+}
+
 // GetDiagramStats возвращает статистику по diagramID.
 func (wm *Manager) GetDiagramStats(diagramID domain.DiagramID) domain.WebSocketStatDiagram {
 	wm.muConn.RLock()

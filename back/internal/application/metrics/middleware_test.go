@@ -166,7 +166,7 @@ func TestMiddleware(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := New(zap.NewNop(), nil)
+			m := New(zap.NewNop(), nil, nil)
 
 			handler := Middleware(m)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				w.WriteHeader(tt.handlerStatus)

@@ -12,12 +12,16 @@ type Metrics struct {
 	HTTPRequestsCurrent        *prometheus.GaugeVec
 	HTTPRequestDurationSeconds *prometheus.HistogramVec
 
-	EmailChannelSize prometheus.GaugeFunc
+	EmailChannelSize     prometheus.GaugeFunc
+	WSConnectionsCurrent prometheus.GaugeFunc
 }
 
-func New(log *zap.Logger, emailChannelSize func() int) *Metrics {
+func New(log *zap.Logger, emailChannelSize, wsConnections func() int) *Metrics {
 	if emailChannelSize == nil {
 		emailChannelSize = func() int { return 0 }
+	}
+	if wsConnections == nil {
+		wsConnections = func() int { return 0 }
 	}
 
 	m := &Metrics{
@@ -52,6 +56,15 @@ func New(log *zap.Logger, emailChannelSize func() int) *Metrics {
 			},
 			func() float64 {
 				return float64(emailChannelSize())
+			},
+		),
+		WSConnectionsCurrent: prometheus.NewGaugeFunc(
+			prometheus.GaugeOpts{
+				Name: "klubok_ws_connections_current",
+				Help: "Number of active WebSocket connections",
+			},
+			func() float64 {
+				return float64(wsConnections())
 			},
 		),
 	}
