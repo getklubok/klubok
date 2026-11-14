@@ -20,7 +20,7 @@ func TestMetrics_HTTPRequestsTotalInc(t *testing.T) {
 	}{
 		{
 			name:   "Normal counter",
-			m:      New(zap.NewNop(), nil, nil),
+			m:      New(zap.NewNop(), nil, nil, nil),
 			method: http.MethodGet,
 			path:   "/api/users",
 			status: "200",
@@ -34,7 +34,7 @@ func TestMetrics_HTTPRequestsTotalInc(t *testing.T) {
 		},
 		{
 			name:   "Different methods and statuses",
-			m:      New(zap.NewNop(), nil, nil),
+			m:      New(zap.NewNop(), nil, nil, nil),
 			method: http.MethodDelete,
 			path:   "/api/users/:id",
 			status: "204",
@@ -57,7 +57,7 @@ func TestMetrics_HTTPRequestsCurrentInc(t *testing.T) {
 	}{
 		{
 			name: "Normal gauge",
-			m:    New(zap.NewNop(), nil, nil),
+			m:    New(zap.NewNop(), nil, nil, nil),
 		},
 		{
 			name: "Nil gauge does not panic",
@@ -81,7 +81,7 @@ func TestMetrics_HTTPRequestsCurrentDec(t *testing.T) {
 	}{
 		{
 			name: "Normal gauge",
-			m:    New(zap.NewNop(), nil, nil),
+			m:    New(zap.NewNop(), nil, nil, nil),
 		},
 		{
 			name: "Nil gauge does not panic",
@@ -108,7 +108,7 @@ func TestMetrics_HTTPRequestDurationSecondsObserve(t *testing.T) {
 	}{
 		{
 			name:    "Normal histogram",
-			m:       New(zap.NewNop(), nil, nil),
+			m:       New(zap.NewNop(), nil, nil, nil),
 			method:  http.MethodGet,
 			path:    "/api/users",
 			elapsed: 0.123,
@@ -122,7 +122,7 @@ func TestMetrics_HTTPRequestDurationSecondsObserve(t *testing.T) {
 		},
 		{
 			name:    "Zero duration",
-			m:       New(zap.NewNop(), nil, nil),
+			m:       New(zap.NewNop(), nil, nil, nil),
 			method:  http.MethodPost,
 			path:    "/api/data",
 			elapsed: 0,
@@ -163,7 +163,7 @@ func TestMetrics_EmailChannelSize(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := New(zap.NewNop(), tt.size, nil)
+			m := New(zap.NewNop(), tt.size, nil, nil)
 
 			name, got := gatherGauge(t, m.EmailChannelSize)
 			assert.Equal(t, "klubok_email_channel_size", name)
@@ -197,10 +197,44 @@ func TestMetrics_WSConnectionsCurrent(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := New(zap.NewNop(), nil, tt.connections)
+			m := New(zap.NewNop(), nil, tt.connections, nil)
 
 			name, got := gatherGauge(t, m.WSConnectionsCurrent)
 			assert.Equal(t, "klubok_ws_connections_current", name)
+			assert.InDelta(t, tt.want, got, 0)
+		})
+	}
+}
+
+func TestMetrics_WSUniqueUsersCurrent(t *testing.T) {
+	tests := []struct {
+		name  string
+		users func() int
+		want  float64
+	}{
+		{
+			name:  "No users",
+			users: func() int { return 0 },
+			want:  0,
+		},
+		{
+			name:  "Connected users",
+			users: func() int { return 5 },
+			want:  5,
+		},
+		{
+			name:  "Nil users func",
+			users: nil,
+			want:  0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := New(zap.NewNop(), nil, nil, tt.users)
+
+			name, got := gatherGauge(t, m.WSUniqueUsersCurrent)
+			assert.Equal(t, "klubok_ws_unique_users_current", name)
 			assert.InDelta(t, tt.want, got, 0)
 		})
 	}
@@ -221,7 +255,7 @@ func gatherGauge(t *testing.T, gauge prometheus.Collector) (string, float64) {
 }
 
 func TestMetrics_HTTPRequestsCurrentIncDec(t *testing.T) {
-	m := New(zap.NewNop(), nil, nil)
+	m := New(zap.NewNop(), nil, nil, nil)
 
 	assert.NotPanics(t, func() {
 		m.HTTPRequestsCurrentInc()

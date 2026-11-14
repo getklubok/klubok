@@ -67,6 +67,9 @@ type Manager struct {
 	connInfo    map[*ws.Conn]ConnInfo
 	muConn      sync.RWMutex
 
+	// Счётчик соединений по пользователям для подсчёта уникальных online-пользователей
+	userConnections map[domain.UserID]int
+
 	// Мапа для хранения позиций курсоров: diagramID -> userID -> cursorPosition
 	cursorPositions map[domain.DiagramID]map[domain.UserID]domain.WebSocketCursorPosition
 	muCursor        sync.RWMutex
@@ -99,6 +102,7 @@ func NewManager(
 
 		connections:     make(map[domain.DiagramID][]*ws.Conn),
 		connInfo:        make(map[*ws.Conn]ConnInfo),
+		userConnections: make(map[domain.UserID]int),
 		cursorPositions: make(map[domain.DiagramID]map[domain.UserID]domain.WebSocketCursorPosition),
 	}
 
@@ -244,6 +248,14 @@ func (wm *Manager) ConnectionCount() int {
 	defer wm.muConn.RUnlock()
 
 	return len(wm.connInfo)
+}
+
+// UniqueUsersCount возвращает количество уникальных пользователей с активными WebSocket соединениями.
+func (wm *Manager) UniqueUsersCount() int {
+	wm.muConn.RLock()
+	defer wm.muConn.RUnlock()
+
+	return len(wm.userConnections)
 }
 
 // GetDiagramStats возвращает статистику по diagramID.
@@ -488,6 +500,7 @@ func (wm *Manager) registerConnection(conn *ws.Conn, diagramID domain.DiagramID,
 		Username:  username,
 		ClientIP:  ip,
 	}
+	wm.userConnections[userID]++
 	connCount := len(wm.connections[diagramID])
 
 	wm.muConn.Unlock()
@@ -563,6 +576,11 @@ func (wm *Manager) unregisterConnection(conn *ws.Conn) {
 	}
 
 	delete(wm.connInfo, conn)
+
+	wm.userConnections[cInfo.UserID]--
+	if wm.userConnections[cInfo.UserID] == 0 {
+		delete(wm.userConnections, cInfo.UserID)
+	}
 
 	wm.muConn.Unlock()
 

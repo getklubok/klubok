@@ -130,7 +130,12 @@ func Run() error { //nolint:gocognit,gocyclo,cyclop,maintidx // It's ok
 	)
 	defer wsManager.Stop()
 
-	mMetrics := metrics.New(log, func() int { return len(emailCh) }, wsManager.ConnectionCount)
+	mMetrics := metrics.New(
+		log,
+		func() int { return len(emailCh) },
+		wsManager.ConnectionCount,
+		wsManager.UniqueUsersCount,
+	)
 	metricsServer := metrics.NewServer(
 		metrics.ServerConfig{
 			Metrics: mMetrics,

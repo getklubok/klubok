@@ -14,14 +14,18 @@ type Metrics struct {
 
 	EmailChannelSize     prometheus.GaugeFunc
 	WSConnectionsCurrent prometheus.GaugeFunc
+	WSUniqueUsersCurrent prometheus.GaugeFunc
 }
 
-func New(log *zap.Logger, emailChannelSize, wsConnections func() int) *Metrics {
+func New(log *zap.Logger, emailChannelSize, wsConnections, wsUniqueUsers func() int) *Metrics {
 	if emailChannelSize == nil {
 		emailChannelSize = func() int { return 0 }
 	}
 	if wsConnections == nil {
 		wsConnections = func() int { return 0 }
+	}
+	if wsUniqueUsers == nil {
+		wsUniqueUsers = func() int { return 0 }
 	}
 
 	m := &Metrics{
@@ -65,6 +69,15 @@ func New(log *zap.Logger, emailChannelSize, wsConnections func() int) *Metrics {
 			},
 			func() float64 {
 				return float64(wsConnections())
+			},
+		),
+		WSUniqueUsersCurrent: prometheus.NewGaugeFunc(
+			prometheus.GaugeOpts{
+				Name: "klubok_ws_unique_users_current",
+				Help: "Number of unique users with active WebSocket connections",
+			},
+			func() float64 {
+				return float64(wsUniqueUsers())
 			},
 		),
 	}

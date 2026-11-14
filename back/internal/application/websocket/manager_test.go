@@ -490,9 +490,10 @@ func TestManager_MaskRemoteAddrInLogs(t *testing.T) {
 
 			core, logs := observer.New(zapcore.InfoLevel)
 			wm := &Manager{
-				ipMasker: tt.masker,
-				log:      zap.New(core),
-				connInfo: make(map[*ws.Conn]ConnInfo),
+				ipMasker:        tt.masker,
+				log:             zap.New(core),
+				connInfo:        make(map[*ws.Conn]ConnInfo),
+				userConnections: make(map[domain.UserID]int),
 			}
 			wm.setupUpgrader()
 			wm.setupHandlers()
@@ -512,6 +513,69 @@ func TestManager_MaskRemoteAddrInLogs(t *testing.T) {
 			if len(entries) == 1 {
 				assert.Equal(t, tt.wantAddr, entries[0].ContextMap()["remote_addr"])
 			}
+		})
+	}
+}
+
+func TestManager_unregisterConnection_UniqueUsers(t *testing.T) {
+	const (
+		diagramID = domain.DiagramID("diagram-1")
+		userID    = domain.UserID("user-1")
+		otherID   = domain.UserID("user-2")
+	)
+
+	tests := []struct {
+		name       string
+		userConns  map[domain.UserID]int
+		wantUsers  int
+		wantCount  int
+		wantExists bool
+	}{
+		{
+			name:       "Second connection remains",
+			userConns:  map[domain.UserID]int{userID: 2},
+			wantUsers:  1,
+			wantCount:  1,
+			wantExists: true,
+		},
+		{
+			name:       "Last connection removed",
+			userConns:  map[domain.UserID]int{userID: 1},
+			wantUsers:  0,
+			wantCount:  0,
+			wantExists: false,
+		},
+		{
+			name:       "Other users remain",
+			userConns:  map[domain.UserID]int{userID: 1, otherID: 1},
+			wantUsers:  1,
+			wantCount:  0,
+			wantExists: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			conn := new(ws.Conn)
+			wm := &Manager{
+				log: zap.NewNop(),
+				connections: map[domain.DiagramID][]*ws.Conn{
+					diagramID: {conn},
+				},
+				connInfo: map[*ws.Conn]ConnInfo{
+					conn: {DiagramID: diagramID, UserID: userID},
+				},
+				userConnections: tt.userConns,
+				cursorPositions: make(map[domain.DiagramID]map[domain.UserID]domain.WebSocketCursorPosition),
+			}
+
+			wm.unregisterConnection(conn)
+
+			assert.Equal(t, tt.wantUsers, wm.UniqueUsersCount())
+			assert.Equal(t, tt.wantCount, tt.userConns[userID])
+			_, exists := tt.userConns[userID]
+			assert.Equal(t, tt.wantExists, exists)
+			assert.Empty(t, wm.connInfo)
 		})
 	}
 }
