@@ -11,9 +11,15 @@ type Metrics struct {
 	HTTPRequestsTotal          *prometheus.CounterVec
 	HTTPRequestsCurrent        *prometheus.GaugeVec
 	HTTPRequestDurationSeconds *prometheus.HistogramVec
+
+	EmailChannelSize prometheus.GaugeFunc
 }
 
-func New(log *zap.Logger) *Metrics {
+func New(log *zap.Logger, emailChannelSize func() int) *Metrics {
+	if emailChannelSize == nil {
+		emailChannelSize = func() int { return 0 }
+	}
+
 	m := &Metrics{
 		log: log.Named("metrics"),
 
@@ -38,6 +44,15 @@ func New(log *zap.Logger) *Metrics {
 				Buckets: prometheus.ExponentialBuckets(0.001, 2, 15), //nolint:mnd // 1ms to ~32s
 			},
 			[]string{"method", "path"},
+		),
+		EmailChannelSize: prometheus.NewGaugeFunc(
+			prometheus.GaugeOpts{
+				Name: "klubok_email_channel_size",
+				Help: "Number of emails waiting in the sending channel",
+			},
+			func() float64 {
+				return float64(emailChannelSize())
+			},
 		),
 	}
 

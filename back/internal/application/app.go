@@ -67,7 +67,32 @@ func Run() error { //nolint:gocognit,gocyclo,cyclop,maintidx // It's ok
 	queries := sqlc.New(dbpool)
 	dbUseCase := db.NewUseCase(dbpool, queries)
 
-	mMetrics := metrics.New(log)
+	var emailCh chan mailer.EmailTask
+	if cfg.Feature.Auth.Email.Enabled {
+		emailClient, err := mail.NewClient(
+			cfg.Mailer.Host,
+			mail.WithPort(cfg.Mailer.Port),
+			mail.WithSSL(),
+			mail.WithTLSPortPolicy(mail.TLSMandatory),
+			mail.WithSMTPAuth(mail.SMTPAuthPlain),
+			mail.WithUsername(cfg.Mailer.Username),
+			mail.WithPassword(cfg.Mailer.Password),
+		)
+		if err != nil {
+			return fmt.Errorf("new mail client: %w", err)
+		}
+
+		emailService := mailer.New(cfg.Mailer.From, emailClient, map[string]any{
+			"sysAppURL": cfg.AppBaseURL,
+		})
+
+		emailCh = make(chan mailer.EmailTask, cfg.Mailer.ChannelBufferSize)
+		emailWorker := mailer.NewWorker(emailService, emailCh, cfg.Mailer.SendInterval, log)
+		emailWorker.Start(ctx)
+		defer emailWorker.Stop()
+	}
+
+	mMetrics := metrics.New(log, func() int { return len(emailCh) })
 	metricsServer := metrics.NewServer(
 		metrics.ServerConfig{
 			Metrics: mMetrics,
@@ -106,31 +131,6 @@ func Run() error { //nolint:gocognit,gocyclo,cyclop,maintidx // It's ok
 	sessionService := session.NewService(queries, log)
 	sessionUpdater := session.NewUpdater(sessionService, cfg.HTTP.Cookie.ExpiresDays, log)
 	defer sessionUpdater.Stop()
-
-	var emailCh chan mailer.EmailTask
-	if cfg.Feature.Auth.Email.Enabled {
-		emailClient, err := mail.NewClient(
-			cfg.Mailer.Host,
-			mail.WithPort(cfg.Mailer.Port),
-			mail.WithSSL(),
-			mail.WithTLSPortPolicy(mail.TLSMandatory),
-			mail.WithSMTPAuth(mail.SMTPAuthPlain),
-			mail.WithUsername(cfg.Mailer.Username),
-			mail.WithPassword(cfg.Mailer.Password),
-		)
-		if err != nil {
-			return fmt.Errorf("new mail client: %w", err)
-		}
-
-		emailService := mailer.New(cfg.Mailer.From, emailClient, map[string]any{
-			"sysAppURL": cfg.AppBaseURL,
-		})
-
-		emailCh = make(chan mailer.EmailTask, cfg.Mailer.ChannelBufferSize)
-		emailWorker := mailer.NewWorker(emailService, emailCh, cfg.Mailer.SendInterval, log)
-		emailWorker.Start(ctx)
-		defer emailWorker.Stop()
-	}
 
 	ipMasker := domain.IPMasker{
 		Enabled:  cfg.Feature.IPMasking.Enabled,
