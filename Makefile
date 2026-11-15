@@ -1,7 +1,11 @@
 .PHONY: init
 init:
 	@codegraph init
-	@openspec init
+	@openspec init --language "Russian (ru-RU)"
+
+.PHONY: docpages
+docpages:
+	@docpages -serve 127.0.0.1:7340 docs
 
 .PHONY: require-version
 require-version:
