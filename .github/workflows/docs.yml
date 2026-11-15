@@ -1,0 +1,56 @@
+name: docs
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "docs/**"
+      - "site/**"
+      - "media/**"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27.3"
+
+      - name: Install docpages
+        run: go install github.com/romshark/docpages/cmd/docpages@v0.2.0
+
+      - name: Build docs site
+        run: docpages -o site/docs docs
+
+      # Ветка gh-pages собирается целиком из site/, история не сохраняется.
+      - name: Publish to gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          touch site/.nojekyll
+          cd site
+          git init -q
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "docs: publish ${GITHUB_SHA}"
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:gh-pages
