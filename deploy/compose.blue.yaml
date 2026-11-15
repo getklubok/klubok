@@ -38,19 +38,6 @@ services:
       APP_BASE_URL: "https://domain.tld"
       HTTP_CORS_ALLOW_ORIGINS: "https://domain.tld"
       COOKIE_DOMAIN: "domain.tld"
-      MAILER_HOST: "smtp.jino.ru"
-      MAILER_PORT: 465
-      MAILER_USERNAME: "no-reply@domain.tld"
-      MAILER_PASSWORD: "password"
-      MAILER_FROM: "Klubok <no-reply@domain.tld>"
-      FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED: false
-      FEATURE_CAPTCHA_ENABLED: false
-      FEATURE_CAPTCHA_PROVIDER: yandex
-      FEATURE_CAPTCHA_YANDEX_SERVER_KEY: "server_key"
-      FEATURE_CAPTCHA_YANDEX_SITE_KEY: "site_key"
-      FEATURE_IP_MASKING_ENABLED: false
-      FEATURE_IP_MASKING_V4_OCTETS: 3
-      FEATURE_IP_MASKING_V6_OCTETS: 7
     volumes:
       - ./privacy.md:/app/privacy.md:ro
     ports:

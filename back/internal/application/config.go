@@ -219,8 +219,8 @@ type Feature struct {
 }
 
 type FakeAutoAccounts struct {
-	// По умолчанию: false.
-	Enabled bool `env:"FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED" envDefault:"false"`
+	// По умолчанию: true.
+	Enabled bool `env:"FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED" envDefault:"true"`
 }
 
 // Auth способы входа (хотя бы один MUST быть включён).
@@ -231,8 +231,8 @@ type Auth struct {
 
 // AuthEmail вход и регистрация по email-коду.
 type AuthEmail struct {
-	// По умолчанию: true (перенос существующего поведения).
-	Enabled bool `env:"FEATURE_AUTH_EMAIL_ENABLED" envDefault:"true"`
+	// По умолчанию: false.
+	Enabled bool `env:"FEATURE_AUTH_EMAIL_ENABLED" envDefault:"false"`
 }
 
 // AuthSSO вход через SSO по протоколу OIDC.

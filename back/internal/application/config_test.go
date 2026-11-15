@@ -337,9 +337,12 @@ func TestLoadConfiguration(t *testing.T) {
 					ExportTimeout: 10 * time.Second,
 				},
 				Feature: Feature{
+					FakeAutoAccounts: FakeAutoAccounts{
+						Enabled: true,
+					},
 					Auth: Auth{
 						Email: AuthEmail{
-							Enabled: true,
+							Enabled: false,
 						},
 					},
 					Captcha: Captcha{
@@ -495,14 +498,12 @@ func TestAuth_LoadConfiguration(t *testing.T) {
 		wantErrContain string
 	}{
 		{
-			name: "Should load defaults with only email enabled",
+			name: "Should load defaults with only fake accounts enabled",
 			setEnvFunc: func(t *testing.T) {
 				t.Helper()
 				setBaseEnv(t)
 			},
-			want: Auth{
-				Email: AuthEmail{Enabled: true},
-			},
+			want:    Auth{},
 			wantErr: nil,
 		},
 		{
@@ -510,7 +511,7 @@ func TestAuth_LoadConfiguration(t *testing.T) {
 			setEnvFunc: func(t *testing.T) {
 				t.Helper()
 				setBaseEnv(t)
-				t.Setenv("FEATURE_AUTH_EMAIL_ENABLED", "false")
+				t.Setenv("FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED", "false")
 				setValidSSO(t)
 			},
 			want: Auth{
@@ -529,6 +530,8 @@ func TestAuth_LoadConfiguration(t *testing.T) {
 			setEnvFunc: func(t *testing.T) {
 				t.Helper()
 				setBaseEnv(t)
+				t.Setenv("FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED", "false")
+				t.Setenv("FEATURE_AUTH_EMAIL_ENABLED", "true")
 				setValidSSO(t)
 			},
 			want: Auth{
@@ -550,9 +553,7 @@ func TestAuth_LoadConfiguration(t *testing.T) {
 				setBaseEnv(t)
 				t.Setenv("FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED", "true")
 			},
-			want: Auth{
-				Email: AuthEmail{Enabled: true},
-			},
+			want:    Auth{},
 			wantErr: nil,
 		},
 		{
@@ -640,6 +641,7 @@ func TestAuth_LoadConfiguration(t *testing.T) {
 				t.Helper()
 				setBaseEnv(t)
 				t.Setenv("FEATURE_AUTH_EMAIL_ENABLED", "false")
+				t.Setenv("FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED", "false")
 			},
 			wantErr: errors.New(
 				"validate auth: at least one of FEATURE_AUTH_EMAIL_ENABLED, FEATURE_AUTH_SSO_ENABLED, FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED must be enabled",
@@ -1101,6 +1103,7 @@ func TestLoadConfiguration_SSOLoginRedirectURL(t *testing.T) {
 
 	setValidSSO := func(t *testing.T) {
 		t.Helper()
+		t.Setenv("FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED", "false")
 		t.Setenv("FEATURE_AUTH_SSO_ENABLED", "true")
 		t.Setenv("FEATURE_AUTH_SSO_ISSUER_URL", "https://sso.domain.tld")
 		t.Setenv("FEATURE_AUTH_SSO_CLIENT_ID", "client-id")

@@ -16,9 +16,9 @@ export HTTP_CORS_ALLOW_ORIGINS="http://localhost:5173"
 
 export WEBSOCKET_PORT=5171
 
-export FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED=false
+export FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED=true
 
-export FEATURE_AUTH_EMAIL_ENABLED=true
+export FEATURE_AUTH_EMAIL_ENABLED=false
 
 export FEATURE_AUTH_SSO_ENABLED=false
 export FEATURE_AUTH_SSO_ISSUER_URL="https://accounts.google.com"
@@ -26,7 +26,7 @@ export FEATURE_AUTH_SSO_CLIENT_ID="799...734.apps.googleusercontent.com"
 export FEATURE_AUTH_SSO_CLIENT_SECRET="GOCSPX-..."
 export FEATURE_AUTH_SSO_REDIRECT_URL="http://localhost:5172/auth/sso/callback"
 
-export FEATURE_CAPTCHA_ENABLED=true
+export FEATURE_CAPTCHA_ENABLED=false
 export FEATURE_CAPTCHA_PROVIDER="yandex"
 export FEATURE_CAPTCHA_YANDEX_SERVER_KEY="server_key"
 

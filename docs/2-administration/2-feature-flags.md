@@ -1,11 +1,11 @@
 # Фича-флаги
 
-Фича-флаги задаются переменными окружения в секции `Feature` конфига backend (`back/internal/application/config.go`). Все выключены по умолчанию, кроме `FEATURE_AUTH_EMAIL_ENABLED`.
+Фича-флаги задаются переменными окружения в секции `Feature` конфига backend (`back/internal/application/config.go`). Все выключены по умолчанию, кроме `FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED`.
 
 | Переменная                              | Описание                                                                                                                   | По умолчанию |
 | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| `FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED`    | Автоматические обезличенные аккаунты (несовместим с `FEATURE_AUTH_SSO_ENABLED`)                                            | `false`      |
-| `FEATURE_AUTH_EMAIL_ENABLED`            | Вход и регистрация по email-коду (отправка кода, верификация, активация)                                                   | `true`       |
+| `FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED`    | Автоматические обезличенные аккаунты (несовместим с `FEATURE_AUTH_SSO_ENABLED`)                                            | `true`       |
+| `FEATURE_AUTH_EMAIL_ENABLED`            | Вход и регистрация по email-коду (отправка кода, верификация, активация)                                                   | `false`      |
 | `FEATURE_AUTH_SSO_ENABLED`              | Вход через SSO по протоколу OIDC (несовместим с `FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED`)                                      | `false`      |
 | `FEATURE_AUTH_SSO_ISSUER_URL`           | Issuer URL OIDC-провайдера для discovery (обязателен при включённом SSO)                                                   | (пусто)      |
 | `FEATURE_AUTH_SSO_CLIENT_ID`            | Идентификатор клиента у OIDC-провайдера (обязателен при включённом SSO)                                                    | (пусто)      |
