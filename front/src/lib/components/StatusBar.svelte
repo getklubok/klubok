@@ -7,17 +7,20 @@
         faCloud,
         faCrosshairs,
         faExpand,
+        faQuestionCircle,
     } from '@fortawesome/free-solid-svg-icons';
 
     import { coordinates, diagramTitle, diagramPermission, syncStatus, onlineUsers } from '../stores';
 
     import Avatar from './Avatar.svelte';
+    import HelpModal from './HelpModal.svelte';
     import PermissionBadge from './PermissionBadge.svelte';
 
     import { viewportManager } from '../services/ViewportManager';
 
     let currentZoom = 100;
     let currentSyncStatus = 'idle';
+    let showHelp = $state(false);
 
     coordinates.subscribe((v) => {
         currentZoom = Math.round(v.zoom * 100);
@@ -60,6 +63,14 @@
                 <Fa icon={faExpand} />
             </button>
         </div>
+        <button
+            class="btn btn-sm btn-outline-secondary ms-2"
+            type="button"
+            onclick={() => (showHelp = true)}
+            title="Управление"
+        >
+            <Fa icon={faQuestionCircle} />
+        </button>
     </div>
     {#if $diagramTitle}
         <div class="statusbar-item">|</div>
@@ -102,6 +113,8 @@
         </div>
     {/if}
 </div>
+
+<HelpModal bind:show={showHelp} />
 
 <style>
     .statusbar {
