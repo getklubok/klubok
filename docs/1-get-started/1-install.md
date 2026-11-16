@@ -11,7 +11,7 @@ Klubok разворачивается с помощью Docker Compose и nginx 
     ```bash
     mkdir /opt/klubok
     ```
-2. Скачайте конфиг nginx и включите сайт (по умолчанию активен `blue`):
+2. Скачайте [конфиг nginx](../3-proxy/1-nginx.md) и включите сайт (по умолчанию активен `blue`):
     ```bash
     curl -o /etc/nginx/sites-available/domain.tld https://raw.githubusercontent.com/getklubok/klubok/refs/heads/master/deploy/nginx.conf
     ln -s /etc/nginx/sites-available/domain.tld /etc/nginx/sites-enabled/domain.tld
@@ -28,7 +28,7 @@ Klubok разворачивается с помощью Docker Compose и nginx 
     docker network create klubok-network
     export D=blue APP_VERSION=X.Y.Z && docker compose -f ./compose.${D}.yaml up -d
     ```
-5. По желанию включите [`pg_stat_statements`](../3-database/1-postgresql.md).
+5. По желанию включите [`pg_stat_statements`](../4-database/1-postgresql.md).
 6. Настройте мониторинг доступности:
     - `GET https://domain.tld/api/health/live` — backend без зависимостей.
     - `GET https://domain.tld/api/health/ready` — backend и его зависимости.
