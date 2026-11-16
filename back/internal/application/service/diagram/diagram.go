@@ -20,6 +20,7 @@ func diagramListRowToDomain(s sqlc.DiagramListRow) domain.Diagram {
 		Title:            s.Title,
 		Permission:       s.Permission,
 		HasCollaborators: s.HasCollaborators,
+		HasEmbeds:        s.HasEmbeds,
 		CreatedAt:        s.CreatedAt,
 		UpdatedAt:        s.UpdatedAt,
 	}

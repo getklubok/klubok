@@ -2435,6 +2435,10 @@ func (s *Diagram) encodeFields(e *jx.Encoder) {
 		e.Bool(s.HasCollaborators)
 	}
 	{
+		e.FieldStart("hasEmbeds")
+		e.Bool(s.HasEmbeds)
+	}
+	{
 		e.FieldStart("createdAt")
 		s.CreatedAt.Encode(e)
 	}
@@ -2444,13 +2448,14 @@ func (s *Diagram) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDiagram = [6]string{
+var jsonFieldsNameOfDiagram = [7]string{
 	0: "id",
 	1: "title",
 	2: "permission",
 	3: "hasCollaborators",
-	4: "createdAt",
-	5: "updatedAt",
+	4: "hasEmbeds",
+	5: "createdAt",
+	6: "updatedAt",
 }
 
 // Decode decodes Diagram from json.
@@ -2504,8 +2509,20 @@ func (s *Diagram) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"hasCollaborators\"")
 			}
-		case "createdAt":
+		case "hasEmbeds":
 			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Bool()
+				s.HasEmbeds = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"hasEmbeds\"")
+			}
+		case "createdAt":
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				if err := s.CreatedAt.Decode(d); err != nil {
 					return err
@@ -2515,7 +2532,7 @@ func (s *Diagram) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"createdAt\"")
 			}
 		case "updatedAt":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				if err := s.UpdatedAt.Decode(d); err != nil {
 					return err
@@ -2534,7 +2551,7 @@ func (s *Diagram) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111111,
+		0b01111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

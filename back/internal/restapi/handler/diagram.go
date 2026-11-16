@@ -18,6 +18,7 @@ func diagramFromDomain(src domain.Diagram) (oas.Diagram, error) {
 		Title:            oas.DiagramTitle(src.Title),
 		Permission:       permission,
 		HasCollaborators: src.HasCollaborators,
+		HasEmbeds:        src.HasEmbeds,
 		CreatedAt:        oas.Datetime(src.CreatedAt),
 		UpdatedAt:        oas.Datetime(src.UpdatedAt),
 	}, nil

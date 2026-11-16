@@ -1535,6 +1535,9 @@ components:
         hasCollaborators:
           type: boolean
           x-nullable: false
+        hasEmbeds:
+          type: boolean
+          x-nullable: false
         createdAt:
           $ref: "#/components/schemas/datetime"
         updatedAt:
@@ -1544,6 +1547,7 @@ components:
         - title
         - permission
         - hasCollaborators
+        - hasEmbeds
         - createdAt
         - updatedAt
 

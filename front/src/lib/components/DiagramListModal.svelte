@@ -247,6 +247,11 @@
                                             <Fa icon={faUserGroup} />
                                         </span>
                                     {/if}
+                                    {#if diagram.hasEmbeds}
+                                        <span class="badge bg-success" title="Есть активные коды встраивания">
+                                            <Fa icon={faCode} />
+                                        </span>
+                                    {/if}
                                     <PermissionBadge permission={diagram.permission} />
                                 </div>
 

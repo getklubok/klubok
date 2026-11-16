@@ -15,7 +15,16 @@ SELECT
                 AND dc2.permission != 'OWNER'
         ) THEN true
         ELSE false
-    END AS has_collaborators
+    END AS has_collaborators,
+    CASE
+        WHEN diagram_collaborators.permission = 'OWNER' AND EXISTS (
+            SELECT 1
+            FROM diagram_embeds de
+            WHERE de.diagram_id = diagrams.id
+                AND de.is_active = true
+        ) THEN true
+        ELSE false
+    END AS has_embeds
 FROM diagram_collaborators
 JOIN diagrams
     ON diagrams.id = diagram_collaborators.diagram_id

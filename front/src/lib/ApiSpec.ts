@@ -261,6 +261,7 @@ export interface Diagram {
   title: DiagramTitle;
   permission: DiagramCollaboratorPermissionEnum;
   hasCollaborators: boolean;
+  hasEmbeds: boolean;
   /** Datetime */
   createdAt: Datetime;
   /** Datetime */

@@ -373,6 +373,7 @@ type Diagram struct {
 	Title            DiagramTitle                      `json:"title"`
 	Permission       DiagramCollaboratorPermissionEnum `json:"permission"`
 	HasCollaborators bool                              `json:"hasCollaborators"`
+	HasEmbeds        bool                              `json:"hasEmbeds"`
 	CreatedAt        Datetime                          `json:"createdAt"`
 	UpdatedAt        Datetime                          `json:"updatedAt"`
 }
@@ -395,6 +396,11 @@ func (s *Diagram) GetPermission() DiagramCollaboratorPermissionEnum {
 // GetHasCollaborators returns the value of HasCollaborators.
 func (s *Diagram) GetHasCollaborators() bool {
 	return s.HasCollaborators
+}
+
+// GetHasEmbeds returns the value of HasEmbeds.
+func (s *Diagram) GetHasEmbeds() bool {
+	return s.HasEmbeds
 }
 
 // GetCreatedAt returns the value of CreatedAt.
@@ -425,6 +431,11 @@ func (s *Diagram) SetPermission(val DiagramCollaboratorPermissionEnum) {
 // SetHasCollaborators sets the value of HasCollaborators.
 func (s *Diagram) SetHasCollaborators(val bool) {
 	s.HasCollaborators = val
+}
+
+// SetHasEmbeds sets the value of HasEmbeds.
+func (s *Diagram) SetHasEmbeds(val bool) {
+	s.HasEmbeds = val
 }
 
 // SetCreatedAt sets the value of CreatedAt.

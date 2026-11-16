@@ -27,6 +27,7 @@ type Diagram struct {
 	Title            string
 	Permission       DiagramCollaboratorPermission
 	HasCollaborators bool
+	HasEmbeds        bool
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 }
