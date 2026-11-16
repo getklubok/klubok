@@ -159,13 +159,17 @@
 <style>
     .context-menu {
         position: fixed;
-        background: white;
-        border: 1px solid #ddd;
+        background: var(--surface-bg);
+        border: 1px solid var(--border-color);
         border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        box-shadow: var(--shadow);
         padding: 4px 0;
         min-width: 160px;
         z-index: 2000;
+    }
+
+    :global(.theme-dark) .context-menu {
+        border-color: #fff;
     }
 
     .menu-item {
@@ -179,25 +183,25 @@
         cursor: pointer;
         font-size: 14px;
         text-align: left;
-        color: #333;
+        color: var(--bs-emphasis-color);
         transition: background-color 0.15s;
     }
 
     .menu-item:hover {
-        background-color: #f0f0f0;
+        background-color: var(--bs-tertiary-bg);
     }
 
     .menu-item.danger {
-        color: #dc3545;
+        color: var(--bs-danger-text-emphasis);
     }
 
     .menu-item.danger:hover {
-        background-color: #fee;
+        background-color: var(--bs-danger-bg-subtle);
     }
 
     .separator {
         height: 1px;
-        background-color: #e0e0e0;
+        background-color: var(--border-color);
         margin: 4px 8px;
     }
 </style>

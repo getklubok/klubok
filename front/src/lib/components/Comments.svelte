@@ -124,9 +124,9 @@
         position: absolute;
         top: 74px;
         right: 20px;
-        background: rgba(255, 255, 255, 0.95);
+        background: var(--surface-bg);
         border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        box-shadow: var(--shadow);
         z-index: 1000;
         width: 70vw;
         max-width: 400px;
@@ -157,19 +157,19 @@
         border: none;
         font-size: 1.2em;
         cursor: pointer;
-        color: #999;
+        color: var(--bs-secondary-color);
     }
 
     .comment {
-        border: 1px solid #ddd;
+        border: 1px solid var(--bs-border-color);
         border-radius: 8px;
         padding: 1rem;
-        background-color: #f9f9f9;
+        background-color: var(--bs-tertiary-bg);
     }
 
     .own-comment {
-        background-color: #e3f2fd;
-        border-color: #2196f3;
+        background-color: var(--bs-primary-bg-subtle);
+        border-color: var(--bs-primary-border-subtle);
     }
 
     .comment-header {
@@ -184,7 +184,7 @@
 
     .created-at {
         font-size: 0.9em;
-        color: #666;
+        color: var(--bs-secondary-color);
     }
 
     .comment-text {
@@ -199,8 +199,6 @@
 
     .new-comment textarea {
         width: 100%;
-        border: 1px solid #ddd;
-        border-radius: 4px;
         padding: 0.5rem;
         resize: vertical;
     }
