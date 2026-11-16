@@ -143,7 +143,7 @@
         const isDark = resolved === 'dark';
         html.setAttribute('data-bs-theme', resolved);
         html.classList.toggle('theme-dark', isDark);
-        html.style.setProperty('--color-scheme', resolved);
+        html.style.setProperty('color-scheme', resolved);
     }
 
     function handleAuthSuccess(isRegister: boolean = false) {

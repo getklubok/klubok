@@ -168,10 +168,6 @@
         z-index: 2000;
     }
 
-    :global(.theme-dark) .context-menu {
-        border-color: #fff;
-    }
-
     .menu-item {
         display: flex;
         align-items: center;

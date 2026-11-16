@@ -167,7 +167,7 @@
         background: none;
         border: none;
         padding: 0;
-        color: #6c757d;
+        color: var(--bs-secondary-color);
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -175,11 +175,11 @@
     }
 
     .copy-btn:hover {
-        color: #0d6efd;
+        color: var(--bs-link-color);
     }
 
     .copy-success {
-        color: #198754;
+        color: var(--bs-success-text-emphasis);
         font-size: 12px;
         margin-left: 4px;
     }

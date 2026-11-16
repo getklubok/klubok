@@ -8,6 +8,7 @@
     --text-color: #333;
     --border-color: rgba(0, 0, 0, 0.08);
     --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --placeholder: #adb5bd;
 }
 
 .theme-dark {
@@ -17,6 +18,7 @@
     --text-color: #e0e0e0;
     --border-color: rgba(255, 255, 255, 0.1);
     --shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --placeholder: #5c636a;
 }
 
 body {
@@ -28,15 +30,15 @@ body {
 
 /* Override Bootstrap placeholder color to be lighter */
 ::placeholder {
-    color: #adb5bd !important;
+    color: var(--placeholder) !important;
     opacity: 1;
 }
 
 ::-ms-input-placeholder {
-    color: #adb5bd !important;
+    color: var(--placeholder) !important;
 }
 
 ::-moz-placeholder {
-    color: #adb5bd !important;
+    color: var(--placeholder) !important;
     opacity: 1;
 }

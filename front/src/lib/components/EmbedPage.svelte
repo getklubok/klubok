@@ -67,7 +67,7 @@
         const html = document.documentElement;
         html.setAttribute('data-bs-theme', isDark ? 'dark' : '');
         html.classList.toggle('theme-dark', isDark);
-        html.style.setProperty('--color-scheme', isDark ? 'dark' : 'light');
+        html.style.setProperty('color-scheme', isDark ? 'dark' : 'light');
 
         // Canvas создаётся асинхронно; canvasReady перезапускает эффект после инициализации.
         // Фон берём из CSS-переменной --diagram-bg (обновлена выше), как в Canvas.svelte.
@@ -312,7 +312,7 @@
     }
 
     .error-screen h3 {
-        color: #dc3545;
+        color: var(--bs-danger-text-emphasis);
     }
 
     #embed-canvas-container {
@@ -365,12 +365,12 @@
 
     .btn-help {
         border: none !important;
-        color: #999 !important;
+        color: var(--bs-secondary-color) !important;
         padding: 0 0.25rem !important;
     }
 
     .btn-help:hover {
-        color: #333 !important;
+        color: var(--bs-emphasis-color) !important;
     }
 
     .diagram-title {
@@ -382,7 +382,7 @@
     }
 
     .brand-link {
-        color: #0d6efd;
+        color: var(--bs-link-color);
         text-decoration: none;
         font-weight: 500;
         font-size: 0.75rem;
