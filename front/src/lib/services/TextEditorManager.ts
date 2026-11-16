@@ -30,6 +30,7 @@ interface IGroupParams {
     scaleX: number;
     scaleY: number;
     controls: Record<string, Control>;
+    sourceGroup: FabricGroup;
 }
 
 export class TextEditorManager {
@@ -95,6 +96,7 @@ export class TextEditorManager {
             scaleX: group.scaleX,
             scaleY: group.scaleY,
             controls: group.controls,
+            sourceGroup: group,
         };
         this.isEditing = true;
 
@@ -123,7 +125,17 @@ export class TextEditorManager {
         });
 
         if (this.groupParams) {
+            const sourceGroup = this.groupParams.sourceGroup;
             newGroup.controls = this.groupParams.controls;
+            // shapeType нужен для масштабирования внутренней фигуры и box-разметки,
+            // цвета — для контролов выделения: новая группа создаётся с дефолтными.
+            newGroup.set({
+                shapeType: sourceGroup.shapeType,
+                order: sourceGroup.order,
+                borderColor: sourceGroup.borderColor,
+                cornerColor: sourceGroup.cornerColor,
+                cornerStrokeColor: sourceGroup.cornerStrokeColor,
+            });
         }
 
         if (this.groupShape && this.groupShape.fabricGroup) {

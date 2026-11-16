@@ -10,6 +10,9 @@ vi.mock('fabric/es', () => {
         ) {
             this.name = opts.name;
         }
+        set(props: Record<string, unknown>) {
+            Object.assign(this, props);
+        }
     }
     return {
         Canvas: class {},
@@ -314,6 +317,36 @@ describe('TextEditorManager', () => {
             manager.finishEditing();
 
             expect(canvas.add).not.toHaveBeenCalled();
+        });
+
+        it('переносит shapeType, order и цвета контролов в новую группу', () => {
+            const deps = makeDeps();
+            const manager = new TextEditorManager(deps);
+            const canvas = makeCanvas();
+            manager.setCanvas(canvas);
+            const items = makeGroupItems();
+            const group = makeGroup('grp-1', items);
+            Object.assign(group, {
+                shapeType: 'box',
+                order: 'a1',
+                borderColor: '#333',
+                cornerColor: '#333',
+                cornerStrokeColor: '#333',
+            });
+
+            manager.startEditing(group);
+            manager.finishEditing();
+
+            expect(canvas.add).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    name: 'grp-1',
+                    shapeType: 'box',
+                    order: 'a1',
+                    borderColor: '#333',
+                    cornerColor: '#333',
+                    cornerStrokeColor: '#333',
+                }),
+            );
         });
     });
 });
