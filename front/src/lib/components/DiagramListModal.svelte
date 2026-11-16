@@ -275,7 +275,7 @@
                                         <button
                                             class="btn btn-sm btn-outline-success"
                                             onclick={() => openEmbedModal(diagram)}
-                                            title="Embed диаграммы"
+                                            title="Встраивание диаграммы"
                                         >
                                             <Fa fw icon={faCode} />
                                         </button>

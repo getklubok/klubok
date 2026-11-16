@@ -29,7 +29,7 @@
             const response = await api.diagramService.embedList(diagram.id);
             embeds = response.embeds;
         } catch (err) {
-            error = (err as RespDataMsg)?.response?.data?.message || 'Ошибка загрузки embed-кодов';
+            error = (err as RespDataMsg)?.response?.data?.message || 'Ошибка загрузки кодов встраивания';
         } finally {
             loading = false;
         }
@@ -42,7 +42,7 @@
             embeds = [...embeds, response.embed];
         } catch (err) {
             alert({
-                title: 'Ошибка создания embed-кода',
+                title: 'Ошибка создания кода встраивания',
                 message: (err as RespDataMsg)?.response?.data?.message || (err as Error).message,
                 type: 'error',
             });
@@ -52,8 +52,8 @@
     async function revokeEmbed(embedId: string) {
         if (!diagram) return;
         const confirmed = await confirm({
-            title: 'Отозвать embed-код',
-            message: 'Вы уверены, что хотите отозвать этот embed-код?',
+            title: 'Отозвать код встраивания',
+            message: 'Вы уверены, что хотите отозвать этот код встраивания?',
         });
         if (!confirmed) return;
 
@@ -62,7 +62,7 @@
             embeds = embeds.map((e) => (e.id === embedId ? { ...e, isActive: false } : e));
         } catch (err) {
             alert({
-                title: 'Ошибка отзыва embed-кода',
+                title: 'Ошибка отзыва кода встраивания',
                 message: (err as RespDataMsg)?.response?.data?.message || (err as Error).message,
                 type: 'error',
             });
@@ -91,9 +91,18 @@
         return `${baseUrl}/embed/#/token/${token}`;
     }
 
+    // Токен в превью маскируется, поэтому код собирается из частей.
+    function getIframeCodeParts(embed: EmbedInfo): { prefix: string; suffix: string } {
+        const [prefix, suffix] = getEmbedUrl(embed.embedCode).split(embed.embedCode);
+        return {
+            prefix: `<iframe src="${prefix}`,
+            suffix: `${suffix}" width="800" height="600" frameborder="0" allowfullscreen></iframe>`,
+        };
+    }
+
     function generateIframeCode(embed: EmbedInfo): string {
-        const url = getEmbedUrl(embed.embedCode);
-        return `<iframe src="${url}" width="800" height="600" frameborder="0" allowfullscreen></iframe>`;
+        const { prefix, suffix } = getIframeCodeParts(embed);
+        return `${prefix}${embed.embedCode}${suffix}`;
     }
 </script>
 
@@ -103,7 +112,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title d-flex align-items-center gap-2">
-                        <Fa icon={faCode} /> Embed диаграммы:
+                        <Fa icon={faCode} /> Встраивание диаграммы:
                         <span class="diagram-title">{diagram?.title}</span>
                     </h5>
                     <!-- svelte-ignore a11y_consider_explicit_label -->
@@ -115,21 +124,13 @@
                     {:else if error}
                         <p class="text-danger">{error}</p>
                     {:else}
-                        <div class="form-section">
-                            <div class="form-section-header">
-                                <h6 class="mb-0">Создание embed-кода</h6>
-                            </div>
-
-                            <button class="btn btn-primary" onclick={createEmbed}>Создать</button>
-                        </div>
-
                         <!-- Подсказка по параметрам URL -->
-                        <div class="form-section">
+                        <div class="form-section form-section-hint">
                             <div class="form-section-header">
                                 <h6 class="mb-0">Параметры URL</h6>
                             </div>
                             <p class="mb-1 text-muted small">
-                                К embed-адресу (после <code>/embed/#/token/&lt;token&gt;</code>) можно добавить
+                                К адресу встраивания (после <code>/embed/#/token/&lt;token&gt;</code>) можно добавить
                                 опциональный параметр <code>?theme=</code>. Если его не указывать, используется
                                 системная тема:
                             </p>
@@ -140,16 +141,18 @@
                             </ul>
                         </div>
 
-                        <!-- Список существующих embed-кодов -->
+                        <!-- Список существующих кодов встраивания -->
                         <div>
-                            <div class="form-section-header">
-                                <h6>Существующие embed-коды</h6>
+                            <div class="form-section-header justify-content-between">
+                                <h6 class="mb-0">Существующие коды встраивания</h6>
+                                <button class="btn btn-primary btn-sm" onclick={createEmbed}>Создать</button>
                             </div>
                             {#if embeds.length === 0}
-                                <p>Нет созданных embed-кодов</p>
+                                <p>Нет созданных кодов встраивания</p>
                             {:else}
                                 <div class="embed-list">
                                     {#each embeds as embed (embed.id)}
+                                        {@const code = getIframeCodeParts(embed)}
                                         <div class="embed-item card mb-2" class:inactive={!embed.isActive}>
                                             <div class="card-body">
                                                 <div class="d-flex justify-content-between align-items-start">
@@ -177,16 +180,14 @@
                                                                 class="btn btn-sm btn-outline-primary"
                                                                 onclick={() =>
                                                                     copyToClipboard(generateIframeCode(embed))}
-                                                                title="Скопировать код"
                                                             >
-                                                                <Fa icon={faCopy} />
+                                                                <Fa icon={faCopy} /> Скопировать код
                                                             </button>
                                                             <button
                                                                 class="btn btn-sm btn-outline-danger"
                                                                 onclick={() => revokeEmbed(embed.id)}
-                                                                title="Отозвать"
                                                             >
-                                                                <Fa icon={faTrash} />
+                                                                <Fa icon={faTrash} /> Отозвать
                                                             </button>
                                                         {:else}
                                                             <span class="text-muted">
@@ -195,6 +196,13 @@
                                                         {/if}
                                                     </div>
                                                 </div>
+                                                {#if embed.isActive}
+                                                    <pre class="embed-code mt-2 mb-0"><code
+                                                            >{code.prefix}<span class="token-mask"
+                                                                >{embed.embedCode}</span
+                                                            >{code.suffix}</code
+                                                        ></pre>
+                                                {/if}
                                             </div>
                                         </div>
                                     {/each}
@@ -245,5 +253,48 @@
     .form-section-header h6 {
         font-weight: 600;
         color: var(--text-color);
+    }
+
+    /* Подсказка про theme — второстепенная, поэтому компактнее основной секции. */
+    .form-section-hint {
+        padding: 0.75rem 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-section-hint .form-section-header {
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    .form-section-hint h6 {
+        font-size: 0.9rem;
+    }
+
+    .form-section-hint p,
+    .form-section-hint li {
+        font-size: 0.8rem;
+    }
+
+    .embed-code {
+        background: var(--surface-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        padding: 0.5rem 0.75rem;
+        color: var(--text-color);
+        font-size: 0.75rem;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+
+    .embed-code code {
+        color: inherit;
+    }
+
+    /* Токен замаскирован, чтобы его нельзя было прочитать с экрана. */
+    .token-mask {
+        background: var(--text-color);
+        color: transparent;
+        border-radius: 0.125rem;
+        user-select: none;
     }
 </style>
