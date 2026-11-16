@@ -18,22 +18,15 @@
 
     import { viewportManager } from '../services/ViewportManager';
 
-    let currentZoom = 100;
-    let currentSyncStatus = 'idle';
     let showHelp = $state(false);
 
-    coordinates.subscribe((v) => {
-        currentZoom = Math.round(v.zoom * 100);
-    });
-
-    syncStatus.subscribe((status) => {
-        currentSyncStatus = status;
-    });
+    const currentZoom = $derived(Math.round($coordinates.zoom * 100));
+    const currentSyncStatus = $derived($syncStatus);
 </script>
 
 <div class="statusbar">
     <div class="statusbar-item">
-        <strong>Zoom:</strong>
+        <strong>Масштаб:</strong>
         {currentZoom}%
         <div class="btn-group ms-2">
             <button
