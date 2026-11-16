@@ -11,6 +11,7 @@ import { shapeStoreManager } from './ShapeStoreManager';
 
 import { isShapeGroup } from '../utils/isShapeGroup';
 import { calcBoxLine, calcBoxText } from '../utils/calcBox';
+import { applyTextHorizontalAlign } from '../utils/textAlign';
 
 export interface TextEditorManagerDependencies {
     getById: (id: string) => ShapeElement | undefined;
@@ -62,6 +63,9 @@ export class TextEditorManager {
 
         const text = group.getObjects()[1] as FabricIText;
 
+        const shapeWidth = this.groupShape?.width ?? group.width;
+        const textAlign = this.groupShape?.textAlign ?? 'center';
+
         let lastLineCount = (text.text || '').split('\n').length;
 
         const handleTextChanged = () => {
@@ -75,9 +79,10 @@ export class TextEditorManager {
                 } else {
                     text.set({ top: 0 });
                 }
-
-                text.canvas?.requestRenderAll();
             }
+
+            applyTextHorizontalAlign(text, shapeWidth, textAlign, group.shapeType);
+            text.canvas?.requestRenderAll();
         };
 
         text.on('changed', handleTextChanged);

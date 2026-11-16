@@ -109,6 +109,7 @@ export class ExporterManager {
                 fill: s.fill,
                 stroke: s.stroke,
                 text: s.text,
+                textAlign: s.textAlign,
                 order: s.order,
             };
 

@@ -12,6 +12,9 @@
 
 export type DiagramCollaboratorPermissionEnum = "OWNER" | "VIEW" | "EDIT";
 
+/** Horizontal text alignment. Defaults to center. */
+export type DiagramShapeTextAlignEnum = "left" | "center" | "right";
+
 /**
  * - S: SQUARE
  * - E: ELLIPSE
@@ -337,6 +340,8 @@ export interface DiagramShape {
    * @minLength 1
    */
   txt: string;
+  /** Horizontal text alignment. Defaults to center. */
+  ta?: DiagramShapeTextAlignEnum;
   /** Order key for layering */
   o: string;
 }

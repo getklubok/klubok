@@ -1,4 +1,4 @@
-import { PAGE_GRID_STEP } from '../constants';
+import { PAGE_GRID_STEP, TEXT_PADDING } from '../constants';
 
 export function calcBoxLine(
     shapeWidth: number,
@@ -9,7 +9,7 @@ export function calcBoxLine(
     const y = shapeHeight / 2;
 
     const lineCount = text.split('\n').length;
-    const lineOffset = lineCount * PAGE_GRID_STEP;
+    const lineOffset = lineCount * PAGE_GRID_STEP + TEXT_PADDING * 2;
 
     const points: [{ x: number; y: number }, { x: number; y: number }] = [
         { x: -x, y: -y + lineOffset },
@@ -23,7 +23,7 @@ export function calcBoxText(shapeHeight: number, textHeight: number): number {
     const y = shapeHeight / 2;
     const textOffset = textHeight / 2;
 
-    const top = -y + textOffset;
+    const top = -y + TEXT_PADDING + textOffset;
 
     return top;
 }

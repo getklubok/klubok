@@ -5307,12 +5307,18 @@ func (s *DiagramShape) encodeFields(e *jx.Encoder) {
 		e.Str(s.Txt)
 	}
 	{
+		if s.Ta.Set {
+			e.FieldStart("ta")
+			s.Ta.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("o")
 		e.Str(s.O)
 	}
 }
 
-var jsonFieldsNameOfDiagramShape = [12]string{
+var jsonFieldsNameOfDiagramShape = [13]string{
 	0:  "id",
 	1:  "tp",
 	2:  "l",
@@ -5324,7 +5330,8 @@ var jsonFieldsNameOfDiagramShape = [12]string{
 	8:  "fc",
 	9:  "sc",
 	10: "txt",
-	11: "o",
+	11: "ta",
+	12: "o",
 }
 
 // Decode decodes DiagramShape from json.
@@ -5464,8 +5471,18 @@ func (s *DiagramShape) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"txt\"")
 			}
+		case "ta":
+			if err := func() error {
+				s.Ta.Reset()
+				if err := s.Ta.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"ta\"")
+			}
 		case "o":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.O = string(v)
@@ -5487,7 +5504,7 @@ func (s *DiagramShape) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b00001111,
+		0b00010111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -5640,6 +5657,48 @@ func (s *DiagramShapeCommentStats) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *DiagramShapeCommentStats) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiagramShapeTextAlignEnum as json.
+func (s DiagramShapeTextAlignEnum) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DiagramShapeTextAlignEnum from json.
+func (s *DiagramShapeTextAlignEnum) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DiagramShapeTextAlignEnum to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DiagramShapeTextAlignEnum(v) {
+	case DiagramShapeTextAlignEnumLeft:
+		*s = DiagramShapeTextAlignEnumLeft
+	case DiagramShapeTextAlignEnumCenter:
+		*s = DiagramShapeTextAlignEnumCenter
+	case DiagramShapeTextAlignEnumRight:
+		*s = DiagramShapeTextAlignEnumRight
+	default:
+		*s = DiagramShapeTextAlignEnum(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DiagramShapeTextAlignEnum) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DiagramShapeTextAlignEnum) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -8321,6 +8380,39 @@ func (s OptDatetime) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptDatetime) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DiagramShapeTextAlignEnum as json.
+func (o OptDiagramShapeTextAlignEnum) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes DiagramShapeTextAlignEnum from json.
+func (o *OptDiagramShapeTextAlignEnum) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptDiagramShapeTextAlignEnum to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptDiagramShapeTextAlignEnum) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptDiagramShapeTextAlignEnum) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

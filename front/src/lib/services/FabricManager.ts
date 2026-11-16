@@ -33,6 +33,7 @@ import {
 
 import { calcBoxLine, calcBoxText } from '../utils/calcBox';
 import { resolveColor } from '../utils/color';
+import { applyTextHorizontalAlign } from '../utils/textAlign';
 
 function calculateConnectionPoints(
     fromElement: FabricGroup,
@@ -367,7 +368,6 @@ class FabricManager {
             fill: '#000',
             originX: 'center',
             originY: 'center',
-            textAlign: 'center',
         });
 
         const isBox = element.type === 'box';
@@ -420,6 +420,13 @@ class FabricManager {
                 scaleY: DEFAULT_SCALE / (group.scaleY || DEFAULT_SCALE),
             });
         }
+
+        applyTextHorizontalAlign(
+            group.item(1) as FabricIText,
+            element.width,
+            element.textAlign ?? 'center',
+            element.type,
+        );
 
         // Конвертируем fill/stroke фигуры, текста и разделителя под текущую тему
         const isDark = this.isDarkTheme();

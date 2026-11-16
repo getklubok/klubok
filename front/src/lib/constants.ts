@@ -14,6 +14,9 @@ export const DEFAULT_STROKE_ELLIPSE: string = '#2980b9';
 export const DEFAULT_STROKE_DIAMOND: string = '#e67e22';
 export const DEFAULT_STROKE_BOX: string = '#27ae60';
 
+// Отступ текста от границы фигуры и разделительной линии в box.
+export const TEXT_PADDING = 10;
+
 // Палитра контролов выделения: corner-контролы, рамка вокруг объекта и рамка
 // области выделения. В светлой теме — тёмные (#333) на белом фоне, в тёмной —
 // светлые (#e0e0e0) на тёмном фоне. Цвета сетки страницы совпадают со светлыми

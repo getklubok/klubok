@@ -1,4 +1,4 @@
-import type { ElementType } from './stores';
+import type { ElementType, TextAlign } from './stores';
 
 export interface RespDataMsg {
     response?: {
@@ -24,6 +24,7 @@ export interface ShapeJson {
     fill: string;
     stroke: string;
     text: string;
+    textAlign?: TextAlign;
     order: string;
     rx?: number;
     ry?: number;

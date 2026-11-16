@@ -9,6 +9,8 @@ export interface ICoordinates {
     zoom: number;
 }
 
+export type TextAlign = 'left' | 'center' | 'right';
+
 export interface IBaseElement {
     id: string;
     type: ElementType;
@@ -22,6 +24,7 @@ export interface IBaseElement {
     scaleX: number;
     scaleY: number;
     text: string;
+    textAlign?: TextAlign;
     order: string;
     fabricGroup?: FabricGroup;
 }

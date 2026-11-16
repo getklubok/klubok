@@ -1014,7 +1014,8 @@ type DiagramShape struct {
 	// Stroke color. Accepts HEX color code or "transparent".
 	Sc string `json:"sc"`
 	// Text.
-	Txt string `json:"txt"`
+	Txt string                       `json:"txt"`
+	Ta  OptDiagramShapeTextAlignEnum `json:"ta"`
 	// Order key for layering.
 	O string `json:"o"`
 }
@@ -1072,6 +1073,11 @@ func (s *DiagramShape) GetSc() string {
 // GetTxt returns the value of Txt.
 func (s *DiagramShape) GetTxt() string {
 	return s.Txt
+}
+
+// GetTa returns the value of Ta.
+func (s *DiagramShape) GetTa() OptDiagramShapeTextAlignEnum {
+	return s.Ta
 }
 
 // GetO returns the value of O.
@@ -1134,6 +1140,11 @@ func (s *DiagramShape) SetTxt(val string) {
 	s.Txt = val
 }
 
+// SetTa sets the value of Ta.
+func (s *DiagramShape) SetTa(val OptDiagramShapeTextAlignEnum) {
+	s.Ta = val
+}
+
 // SetO sets the value of O.
 func (s *DiagramShape) SetO(val string) {
 	s.O = val
@@ -1163,6 +1174,56 @@ func (s *DiagramShapeCommentStats) SetShapeId(val Ulid) {
 // SetCommentCount sets the value of CommentCount.
 func (s *DiagramShapeCommentStats) SetCommentCount(val int32) {
 	s.CommentCount = val
+}
+
+// Horizontal text alignment. Defaults to center.
+// Ref: #/components/schemas/DiagramShapeTextAlignEnum
+type DiagramShapeTextAlignEnum string
+
+const (
+	DiagramShapeTextAlignEnumLeft   DiagramShapeTextAlignEnum = "left"
+	DiagramShapeTextAlignEnumCenter DiagramShapeTextAlignEnum = "center"
+	DiagramShapeTextAlignEnumRight  DiagramShapeTextAlignEnum = "right"
+)
+
+// AllValues returns all DiagramShapeTextAlignEnum values.
+func (DiagramShapeTextAlignEnum) AllValues() []DiagramShapeTextAlignEnum {
+	return []DiagramShapeTextAlignEnum{
+		DiagramShapeTextAlignEnumLeft,
+		DiagramShapeTextAlignEnumCenter,
+		DiagramShapeTextAlignEnumRight,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DiagramShapeTextAlignEnum) MarshalText() ([]byte, error) {
+	switch s {
+	case DiagramShapeTextAlignEnumLeft:
+		return []byte(s), nil
+	case DiagramShapeTextAlignEnumCenter:
+		return []byte(s), nil
+	case DiagramShapeTextAlignEnumRight:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DiagramShapeTextAlignEnum) UnmarshalText(data []byte) error {
+	switch DiagramShapeTextAlignEnum(data) {
+	case DiagramShapeTextAlignEnumLeft:
+		*s = DiagramShapeTextAlignEnumLeft
+		return nil
+	case DiagramShapeTextAlignEnumCenter:
+		*s = DiagramShapeTextAlignEnumCenter
+		return nil
+	case DiagramShapeTextAlignEnumRight:
+		*s = DiagramShapeTextAlignEnumRight
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 // Ref: #/components/schemas/DiagramShapeTypeEnum
@@ -1740,6 +1801,52 @@ func (o OptDatetime) Get() (v Datetime, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptDatetime) Or(d Datetime) Datetime {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptDiagramShapeTextAlignEnum returns new OptDiagramShapeTextAlignEnum with value set to v.
+func NewOptDiagramShapeTextAlignEnum(v DiagramShapeTextAlignEnum) OptDiagramShapeTextAlignEnum {
+	return OptDiagramShapeTextAlignEnum{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptDiagramShapeTextAlignEnum is optional DiagramShapeTextAlignEnum.
+type OptDiagramShapeTextAlignEnum struct {
+	Value DiagramShapeTextAlignEnum
+	Set   bool
+}
+
+// IsSet returns true if OptDiagramShapeTextAlignEnum was set.
+func (o OptDiagramShapeTextAlignEnum) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptDiagramShapeTextAlignEnum) Reset() {
+	var v DiagramShapeTextAlignEnum
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptDiagramShapeTextAlignEnum) SetTo(v DiagramShapeTextAlignEnum) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptDiagramShapeTextAlignEnum) Get() (v DiagramShapeTextAlignEnum, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptDiagramShapeTextAlignEnum) Or(d DiagramShapeTextAlignEnum) DiagramShapeTextAlignEnum {
 	if v, ok := o.Get(); ok {
 		return v
 	}

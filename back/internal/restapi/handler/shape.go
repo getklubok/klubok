@@ -32,18 +32,19 @@ func diagramShapeToDomain(src oas.DiagramShape) (domain.DiagramShape, error) {
 	}
 
 	return domain.DiagramShape{
-		ID:     domain.ShapeID(src.ID),
-		Type:   typ,
-		Left:   src.L,
-		Top:    src.T,
-		Width:  src.W,
-		Height: src.H,
-		ScaleX: src.Sx,
-		ScaleY: src.Sy,
-		Fill:   src.Fc,
-		Stroke: src.Sc,
-		Text:   src.Txt,
-		Order:  src.O,
+		ID:        domain.ShapeID(src.ID),
+		Type:      typ,
+		Left:      src.L,
+		Top:       src.T,
+		Width:     src.W,
+		Height:    src.H,
+		ScaleX:    src.Sx,
+		ScaleY:    src.Sy,
+		Fill:      src.Fc,
+		Stroke:    src.Sc,
+		Text:      src.Txt,
+		TextAlign: diagramShapeTextAlignToDomain(src.Ta),
+		Order:     src.O,
 	}, nil
 }
 
@@ -93,8 +94,31 @@ func diagramShapeFromDomain(src domain.DiagramShape) (oas.DiagramShape, error) {
 		Fc:  src.Fill,
 		Sc:  src.Stroke,
 		Txt: src.Text,
+		Ta:  oas.NewOptDiagramShapeTextAlignEnum(diagramShapeTextAlignFromDomain(src.TextAlign)),
 		O:   src.Order,
 	}, nil
+}
+
+func diagramShapeTextAlignToDomain(src oas.OptDiagramShapeTextAlignEnum) domain.DiagramShapeTextAlign {
+	switch src.Or(oas.DiagramShapeTextAlignEnumCenter) {
+	case oas.DiagramShapeTextAlignEnumLeft:
+		return domain.DiagramShapeTextAlignLeft
+	case oas.DiagramShapeTextAlignEnumRight:
+		return domain.DiagramShapeTextAlignRight
+	default:
+		return domain.DiagramShapeTextAlignCenter
+	}
+}
+
+func diagramShapeTextAlignFromDomain(src domain.DiagramShapeTextAlign) oas.DiagramShapeTextAlignEnum {
+	switch src {
+	case domain.DiagramShapeTextAlignLeft:
+		return oas.DiagramShapeTextAlignEnumLeft
+	case domain.DiagramShapeTextAlignRight:
+		return oas.DiagramShapeTextAlignEnumRight
+	default:
+		return oas.DiagramShapeTextAlignEnumCenter
+	}
 }
 
 func diagramShapeCommentStatsFromDomain(src []domain.DiagramShapeCommentStat) []oas.DiagramShapeCommentStats {

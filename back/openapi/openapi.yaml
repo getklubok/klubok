@@ -1651,6 +1651,8 @@ components:
           description: Text.
           minLength: 1
           x-nullable: false
+        ta:
+          $ref: "#/components/schemas/DiagramShapeTextAlignEnum"
         o:
           type: string
           description: Order key for layering
@@ -1796,6 +1798,14 @@ components:
         - D: DIAMOND
         - B: BOX
         - T: TEXT
+
+    DiagramShapeTextAlignEnum:
+      type: string
+      enum:
+        - left
+        - center
+        - right
+      description: Horizontal text alignment. Defaults to center.
 
     DiagramCollaboratorPermissionEnum:
       type: string

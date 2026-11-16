@@ -33,19 +33,32 @@ type Diagram struct {
 }
 
 type DiagramShape struct {
-	ID     ShapeID          `json:"id"`
-	Type   DiagramShapeType `json:"tp"`  //nolint:tagliatelle // Optimization
-	Left   float64          `json:"l"`   //nolint:tagliatelle // Optimization
-	Top    float64          `json:"t"`   //nolint:tagliatelle // Optimization
-	Width  float64          `json:"w"`   //nolint:tagliatelle // Optimization
-	Height float64          `json:"h"`   //nolint:tagliatelle // Optimization
-	ScaleX float64          `json:"sx"`  //nolint:tagliatelle // Optimization
-	ScaleY float64          `json:"sy"`  //nolint:tagliatelle // Optimization
-	Fill   string           `json:"fc"`  //nolint:tagliatelle // Optimization
-	Stroke string           `json:"sc"`  //nolint:tagliatelle // Optimization
-	Text   string           `json:"txt"` //nolint:tagliatelle // Optimization
-	Order  string           `json:"o"`   //nolint:tagliatelle // Optimization
+	ID        ShapeID               `json:"id"`
+	Type      DiagramShapeType      `json:"tp"`           //nolint:tagliatelle // Optimization
+	Left      float64               `json:"l"`            //nolint:tagliatelle // Optimization
+	Top       float64               `json:"t"`            //nolint:tagliatelle // Optimization
+	Width     float64               `json:"w"`            //nolint:tagliatelle // Optimization
+	Height    float64               `json:"h"`            //nolint:tagliatelle // Optimization
+	ScaleX    float64               `json:"sx"`           //nolint:tagliatelle // Optimization
+	ScaleY    float64               `json:"sy"`           //nolint:tagliatelle // Optimization
+	Fill      string                `json:"fc"`           //nolint:tagliatelle // Optimization
+	Stroke    string                `json:"sc"`           //nolint:tagliatelle // Optimization
+	Text      string                `json:"txt"`          //nolint:tagliatelle // Optimization
+	TextAlign DiagramShapeTextAlign `json:"ta,omitempty"` //nolint:tagliatelle // Optimization
+	Order     string                `json:"o"`            //nolint:tagliatelle // Optimization
 }
+
+type DiagramShapeTextAlign string
+
+func (v DiagramShapeTextAlign) String() string {
+	return string(v)
+}
+
+const (
+	DiagramShapeTextAlignLeft   DiagramShapeTextAlign = "left"
+	DiagramShapeTextAlignCenter DiagramShapeTextAlign = "center"
+	DiagramShapeTextAlignRight  DiagramShapeTextAlign = "right"
+)
 
 type DiagramShapeType string
 

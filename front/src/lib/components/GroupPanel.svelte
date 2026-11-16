@@ -9,13 +9,16 @@
         faEdit,
         faComment,
         faClone,
+        faAlignLeft,
+        faAlignCenter,
+        faAlignRight,
     } from '@fortawesome/free-solid-svg-icons';
 
     import { canvasManager } from '../services/CanvasManager';
 
     import hasPermission from '../services/hasPermission';
 
-    import { selectedObject } from '../stores';
+    import { selectedObject, shapes } from '../stores';
     import type { DiagramCollaboratorPermissionEnum } from '../ApiSpec';
     import { groupActionManager } from '../services/GroupActionManager';
 
@@ -23,6 +26,8 @@
         permission: DiagramCollaboratorPermissionEnum | null | undefined;
     }
     const { permission }: Props = $props();
+
+    const textAlign = $derived($shapes.find((s) => s.id === $selectedObject?.name)?.textAlign ?? 'center');
 </script>
 
 <div class="group-panel">
@@ -64,6 +69,41 @@
                 </button>
             {/if}
         </div>
+        {#if hasPermission(permission) && ($selectedObject.type === 'box' || $selectedObject.type === 'text')}
+            <div class="section-title">Текст</div>
+            <div class="btn-group-sm">
+                <button
+                    class="btn btn-outline-primary"
+                    class:active={textAlign === 'left'}
+                    type="button"
+                    onclick={() => canvasManager.setTextAlign($selectedObject.name, 'left')}
+                    title="По левому краю"
+                    aria-pressed={textAlign === 'left'}
+                >
+                    <Fa fw icon={faAlignLeft} />
+                </button>
+                <button
+                    class="btn btn-outline-primary"
+                    class:active={textAlign === 'center'}
+                    type="button"
+                    onclick={() => canvasManager.setTextAlign($selectedObject.name, 'center')}
+                    title="По центру"
+                    aria-pressed={textAlign === 'center'}
+                >
+                    <Fa fw icon={faAlignCenter} />
+                </button>
+                <button
+                    class="btn btn-outline-primary"
+                    class:active={textAlign === 'right'}
+                    type="button"
+                    onclick={() => canvasManager.setTextAlign($selectedObject.name, 'right')}
+                    title="По правому краю"
+                    aria-pressed={textAlign === 'right'}
+                >
+                    <Fa fw icon={faAlignRight} />
+                </button>
+            </div>
+        {/if}
         {#if hasPermission(permission)}
             <div class="section-title">Слои</div>
             <div class="btn-group-sm">

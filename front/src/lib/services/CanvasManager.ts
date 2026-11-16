@@ -5,7 +5,6 @@ import {
     Point as FabricPoint,
     Polyline as FabricPolyline,
     FabricObject,
-    FabricText,
     IText as FabricIText,
 } from 'fabric/es';
 import { ulid } from 'ulid';
@@ -15,6 +14,7 @@ import {
     type ConnectionElement,
     type CursorData,
     type DrawingMode,
+    type TextAlign,
     clearState,
     coordinates,
     selectedObject,
@@ -58,6 +58,7 @@ import type { DiagramCollaboratorPermissionEnum, DiagramInfo, OnlineUser } from 
 import { getBoundingBox } from '../utils/getBoundingBox';
 import { isShapeGroup } from '../utils/isShapeGroup';
 import { calcBoxLine, calcBoxText } from '../utils/calcBox';
+import { applyTextHorizontalAlign } from '../utils/textAlign';
 
 type UserID = string;
 
@@ -504,12 +505,18 @@ export class CanvasManager {
                 strokeWidth: DEFAULT_STROKE_WIDTH,
             });
 
-            const textObj = fabricObj.getObjects()[1] as FabricText;
+            const textObj = fabricObj.getObjects()[1] as FabricIText;
             textObj.set({
                 text: upsertedShape.text,
                 scaleX: DEFAULT_SCALE / (fabricObj.scaleX || DEFAULT_SCALE),
                 scaleY: DEFAULT_SCALE / (fabricObj.scaleY || DEFAULT_SCALE),
             });
+            applyTextHorizontalAlign(
+                textObj,
+                upsertedShape.width,
+                upsertedShape.textAlign ?? 'center',
+                upsertedShape.type,
+            );
 
             this.updateConnectionByShapeId(existShape.id);
             commentBadgeManager.updatePosition(fabricObj);
@@ -522,12 +529,27 @@ export class CanvasManager {
                 scaleX: upsertedShape.scaleX,
                 scaleY: upsertedShape.scaleY,
                 text: upsertedShape.text,
+                textAlign: upsertedShape.textAlign ?? 'center',
             });
 
             return fabricObj;
         }
 
         return this.addShape(upsertedShape);
+    }
+
+    public setTextAlign(shapeId: string, textAlign: TextAlign) {
+        const shape = shapeStoreManager.getById(shapeId);
+        if (!shape || (shape.type !== 'box' && shape.type !== 'text')) return;
+
+        const fabricObj = shape.fabricGroup;
+        if (!fabricObj) return;
+
+        applyTextHorizontalAlign(fabricObj.getObjects()[1] as FabricIText, shape.width, textAlign, shape.type);
+        fabricObj.set('dirty', true);
+        this.canvas?.requestRenderAll();
+
+        shapeStoreManager.update({ ...shape, textAlign });
     }
 
     public removeShape(shape: FabricGroup): boolean {
@@ -932,6 +954,7 @@ export class CanvasManager {
                     scaleX: DEFAULT_SCALE,
                     scaleY: DEFAULT_SCALE,
                     text: 'Контейнер',
+                    textAlign: 'center',
                     order: '',
                 };
                 break;
@@ -951,6 +974,7 @@ export class CanvasManager {
                     scaleX: DEFAULT_SCALE,
                     scaleY: DEFAULT_SCALE,
                     text: 'Текст',
+                    textAlign: 'center',
                     order: '',
                 };
                 break;
@@ -1399,10 +1423,7 @@ export class CanvasManager {
 
                     if (text) {
                         // Сохраняем постоянный размер текста, компенсируя масштаб группы
-                        text.set({
-                            scaleX: DEFAULT_SCALE,
-                            scaleY: DEFAULT_SCALE,
-                        });
+                        text.set({ scaleX: DEFAULT_SCALE, scaleY: DEFAULT_SCALE });
                     }
 
                     obj.setCoords();
@@ -1436,9 +1457,7 @@ export class CanvasManager {
                                 {
                                     shape.set({ width: snappedW, height: snappedH });
                                     obj.setCoords();
-                                    obj.item(2).set({
-                                        points: calcBoxLine(snappedW, snappedH, text.text || ''),
-                                    });
+                                    obj.item(2).set({ points: calcBoxLine(snappedW, snappedH, text.text || '') });
                                     text.set({ top: calcBoxText(snappedH, text.height) });
                                 }
                                 break;
@@ -1447,6 +1466,12 @@ export class CanvasManager {
                         }
                     }
 
+                    applyTextHorizontalAlign(
+                        text,
+                        snappedW,
+                        shapeStoreManager.getById(obj.name || '')?.textAlign ?? 'center',
+                        obj.shapeType,
+                    );
                     obj.dirty = true;
                     obj.setCoords();
                 }

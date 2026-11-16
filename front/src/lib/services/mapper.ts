@@ -43,6 +43,7 @@ export function mapShapeJsonToApi(newId: string, src: ShapeJson): DiagramShape {
         fc: src.fill,
         sc: src.stroke,
         txt: src.text,
+        ta: src.textAlign ?? 'center',
         o: src.order,
     };
 }
@@ -60,6 +61,7 @@ export function mapShapeToApi(src: ShapeElement): DiagramShape {
         fc: src.fill,
         sc: src.stroke,
         txt: src.text,
+        ta: src.textAlign ?? 'center',
         o: src.order,
     };
 }
@@ -77,6 +79,7 @@ export function mapShapeFromApi(src: DiagramShape): ShapeElement {
         scaleX: src.sx,
         scaleY: src.sy,
         text: src.txt,
+        textAlign: src.ta ?? ('center' as const),
         order: src.o,
     };
 

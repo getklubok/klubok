@@ -26,6 +26,7 @@ describe('mapShapeToApi', () => {
             scaleX: 1,
             scaleY: 1,
             text: 'hello',
+            textAlign: 'center',
             order: '',
         };
 
@@ -42,6 +43,7 @@ describe('mapShapeToApi', () => {
             fc: '#FF0000',
             sc: '#000000',
             txt: 'hello',
+            ta: 'center',
             o: '',
         });
     });
@@ -62,6 +64,7 @@ describe('mapShapeToApi', () => {
             rx: 50,
             ry: 50,
             text: 'world',
+            textAlign: 'center',
             order: '',
         };
 
@@ -78,6 +81,7 @@ describe('mapShapeToApi', () => {
             fc: '#00FF00',
             sc: '#111111',
             txt: 'world',
+            ta: 'center',
             o: '',
         });
     });
@@ -96,6 +100,7 @@ describe('mapShapeToApi', () => {
             scaleX: 1.5,
             scaleY: 1.5,
             text: 'test',
+            textAlign: 'center',
             order: '',
         };
 
@@ -112,6 +117,7 @@ describe('mapShapeToApi', () => {
             fc: '#0000FF',
             sc: '#222222',
             txt: 'test',
+            ta: 'center',
             o: '',
         });
     });
@@ -130,6 +136,7 @@ describe('mapShapeToApi', () => {
             scaleX: 1,
             scaleY: 1,
             text: 'Текст',
+            textAlign: 'center',
             order: '',
         };
 
@@ -146,6 +153,7 @@ describe('mapShapeToApi', () => {
             fc: 'transparent',
             sc: 'transparent',
             txt: 'Текст',
+            ta: 'center',
             o: '',
         });
     });
@@ -184,6 +192,7 @@ describe('mapShapeFromApi', () => {
             fc: '#FF0000',
             sc: '#000000',
             txt: 'hello',
+            ta: 'center',
             o: '',
         };
 
@@ -201,6 +210,7 @@ describe('mapShapeFromApi', () => {
             scaleX: 1,
             scaleY: 1,
             text: 'hello',
+            textAlign: 'center',
             order: '',
         });
     });
@@ -218,6 +228,7 @@ describe('mapShapeFromApi', () => {
             fc: '#00FF00',
             sc: '#111111',
             txt: 'world',
+            ta: 'center',
             o: '',
         };
 
@@ -237,6 +248,7 @@ describe('mapShapeFromApi', () => {
             text: 'world',
             rx: 50,
             ry: 50,
+            textAlign: 'center',
             order: '',
         });
     });
@@ -254,6 +266,7 @@ describe('mapShapeFromApi', () => {
             fc: '#0000FF',
             sc: '#222222',
             txt: 'test',
+            ta: 'center',
             o: '',
         };
 
@@ -271,6 +284,7 @@ describe('mapShapeFromApi', () => {
             scaleX: 1.5,
             scaleY: 1.5,
             text: 'test',
+            textAlign: 'center',
             order: '',
         });
     });
@@ -288,6 +302,7 @@ describe('mapShapeFromApi', () => {
             fc: 'transparent',
             sc: 'transparent',
             txt: 'Текст',
+            ta: 'center',
             o: '',
         };
 
@@ -305,6 +320,7 @@ describe('mapShapeFromApi', () => {
             scaleX: 1,
             scaleY: 1,
             text: 'Текст',
+            textAlign: 'center',
             order: '',
         });
     });
@@ -384,6 +400,7 @@ describe('mapShapeJsonToApi', () => {
             fill: '#FF0000',
             stroke: '#000000',
             text: 'hello',
+            textAlign: 'center',
             order: '',
         };
 
@@ -400,6 +417,7 @@ describe('mapShapeJsonToApi', () => {
             fc: '#FF0000',
             sc: '#000000',
             txt: 'hello',
+            ta: 'center',
             o: '',
         });
     });
@@ -415,6 +433,7 @@ describe('mapShapeJsonToApi', () => {
             fill: '#00FF00',
             stroke: '#111111',
             text: 'world',
+            textAlign: 'center',
             order: '',
             rx: 50,
             ry: 50,
@@ -433,6 +452,7 @@ describe('mapShapeJsonToApi', () => {
             fc: '#00FF00',
             sc: '#111111',
             txt: 'world',
+            ta: 'center',
             o: '',
         });
     });
@@ -448,6 +468,7 @@ describe('mapShapeJsonToApi', () => {
             fill: '#0000FF',
             stroke: '#222222',
             text: 'test',
+            textAlign: 'center',
             order: '',
         };
 
@@ -464,6 +485,7 @@ describe('mapShapeJsonToApi', () => {
             fc: '#0000FF',
             sc: '#222222',
             txt: 'test',
+            ta: 'center',
             o: '',
         });
     });
@@ -479,6 +501,7 @@ describe('mapShapeJsonToApi', () => {
             fill: 'transparent',
             stroke: 'transparent',
             text: 'Текст',
+            textAlign: 'center',
             order: '',
         };
 
@@ -495,6 +518,7 @@ describe('mapShapeJsonToApi', () => {
             fc: 'transparent',
             sc: 'transparent',
             txt: 'Текст',
+            ta: 'center',
             o: '',
         });
     });
