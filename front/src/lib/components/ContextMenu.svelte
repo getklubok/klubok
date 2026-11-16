@@ -125,16 +125,22 @@
         return items;
     });
 
-    function handleClickOutside(event: MouseEvent) {
+    function handleClickOutside(event: PointerEvent) {
         if (!(event.target as HTMLElement).closest('.context-menu')) {
             onClose();
         }
     }
 </script>
 
-<svelte:window onclick={handleClickOutside} />
+<svelte:window onpointerdown={handleClickOutside} />
 
-<div class="context-menu" style="left: {x}px; top: {y}px;">
+<div
+    class="context-menu"
+    style="left: {x}px; top: {y}px; transform: translate(
+        min(0px, calc(100vw - {x}px - 100% - 8px)),
+        min(0px, calc(100vh - {y}px - 100% - 8px))
+    );"
+>
     <!-- eslint-disable-next-line svelte/require-each-key -->
     {#each menuItems as item}
         {#if item.separator}

@@ -84,6 +84,20 @@ export interface CanvasManagerDependencies {
     mapConnectionFromApi: (conn: import('../ApiSpec').DiagramConnection) => ConnectionElement;
 }
 
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_MOVE_TOLERANCE = 10;
+
+type ClientPoint = { x: number; y: number };
+
+function isTouchEvent(event: MouseEvent | TouchEvent): boolean {
+    return event.type?.startsWith('touch') || (event as PointerEvent).pointerType === 'touch';
+}
+
+function getClientPoint(event: MouseEvent | TouchEvent): ClientPoint {
+    const touch = 'changedTouches' in event ? event.changedTouches[0] : event;
+    return { x: touch?.clientX ?? 0, y: touch?.clientY ?? 0 };
+}
+
 const defaultDeps: CanvasManagerDependencies = {
     createId: () => ulid().toString(),
     hasPermission,
@@ -112,6 +126,10 @@ export class CanvasManager {
     // Переменные для режима рисования стрелок
     private fromElement: FabricGroup | null = null;
 
+    // Таймер долгого нажатия (touch) для открытия контекстного меню
+    private longPressTimer: ReturnType<typeof setTimeout> | null = null;
+    private longPressStartPoint: ClientPoint | null = null;
+
     private remoteCursors: Record<UserID, RemoteCursor> = {};
 
     private pageBorder: FabricObject | null = null;
@@ -139,6 +157,7 @@ export class CanvasManager {
         this.diagramInfo = null;
         this.currentDrawingMode = 'select';
         this.remoteCursors = {};
+        this.cancelLongPress();
 
         contextMenu.set({
             visible: false,
@@ -218,6 +237,7 @@ export class CanvasManager {
 
     public setCurrentDrawingMode(mode: DrawingMode) {
         this.currentDrawingMode = mode;
+        this.cancelLongPress();
         this.updateCanvasCursor();
     }
 
@@ -240,6 +260,15 @@ export class CanvasManager {
         switch (this.currentDrawingMode) {
             case 'select': {
                 this.canvas.selection = true;
+
+                // На тач-устройствах правой кнопки нет — открываем то же меню долгим нажатием
+                if (
+                    isTouchEvent(event) &&
+                    isShapeGroup(options.target) &&
+                    this.deps.hasPermission(this.diagramInfo?.permission)
+                ) {
+                    this.startLongPress(options.target as FabricGroup, getClientPoint(event));
+                }
                 break;
             }
 
@@ -275,6 +304,15 @@ export class CanvasManager {
 
         const event = options.e;
 
+        if (this.longPressStartPoint) {
+            const point = getClientPoint(event);
+            const dx = point.x - this.longPressStartPoint.x;
+            const dy = point.y - this.longPressStartPoint.y;
+            if (Math.hypot(dx, dy) > LONG_PRESS_MOVE_TOLERANCE) {
+                this.cancelLongPress();
+            }
+        }
+
         if (this.isPanning) {
             const deltaX = event.clientX - this.lastPosX;
             const deltaY = event.clientY - this.lastPosY;
@@ -300,6 +338,7 @@ export class CanvasManager {
     public onMouseUp = () => {
         if (!this.canvas) return;
 
+        this.cancelLongPress();
         this.isPanning = false;
 
         // Восстанавливаем выделение в зависимости от режима
@@ -396,19 +435,42 @@ export class CanvasManager {
         if (!this.canvas) return;
         if (!isShapeGroup(options.target)) return;
 
-        this.updateDebug(options.target);
-        this.canvas.setActiveObject(options.target);
-
         const event = options.e as MouseEvent;
+        this.openContextMenu(options.target as FabricGroup, event.clientX, event.clientY);
+    };
+
+    private startLongPress(target: FabricGroup, point: ClientPoint) {
+        this.cancelLongPress();
+        this.longPressStartPoint = point;
+        this.longPressTimer = setTimeout(() => {
+            this.longPressTimer = null;
+            this.longPressStartPoint = null;
+            this.openContextMenu(target, point.x, point.y);
+        }, LONG_PRESS_MS);
+    }
+
+    private cancelLongPress() {
+        if (this.longPressTimer) {
+            clearTimeout(this.longPressTimer);
+        }
+        this.longPressTimer = null;
+        this.longPressStartPoint = null;
+    }
+
+    private openContextMenu(target: FabricGroup, x: number, y: number) {
+        if (!this.canvas) return;
+
+        this.updateDebug(target);
+        this.canvas.setActiveObject(target);
         contextMenu.set({
             visible: true,
-            x: event.clientX,
-            y: event.clientY,
-            target: options.target,
+            x,
+            y,
+            target,
         });
 
         this.canvas.requestRenderAll();
-    };
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public onSelectionCreated = (options: any) => {

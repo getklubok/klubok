@@ -107,7 +107,10 @@ vi.mock('../stores', () => ({
     clearState: vi.fn(),
     coordinates: { set: vi.fn() },
     contextMenu: { set: vi.fn() },
+    selectedObject: { set: vi.fn(), update: vi.fn() },
 }));
+
+import { contextMenu } from '../stores';
 
 import { CanvasManager as CanvasManagerClass, type CanvasManagerDependencies } from './CanvasManager';
 
@@ -118,6 +121,7 @@ function makeCanvas() {
         remove: vi.fn(),
         requestRenderAll: vi.fn(),
         getObjects: vi.fn().mockReturnValue([]),
+        setActiveObject: vi.fn(),
         getScenePoint: vi.fn().mockReturnValue({ x: 0, y: 0 }),
         getZoom: vi.fn().mockReturnValue(1),
         zoomToPoint: vi.fn(),
@@ -750,6 +754,77 @@ describe('CanvasManager', () => {
             manager.onMouseDown({ e: { ctrlKey: false } });
 
             expect(canvas.selection).toBe(true);
+        });
+    });
+
+    describe('onMouseDown (long press)', () => {
+        const target = {
+            type: 'group',
+            name: 's1',
+            getObjects: () => [{ type: 'rect' }],
+        };
+
+        function touchStart(x: number, y: number) {
+            return { e: { type: 'touchstart', changedTouches: [{ clientX: x, clientY: y }] }, target };
+        }
+
+        beforeEach(() => {
+            vi.useFakeTimers();
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
+        it('открывает контекстное меню после 500 мс удержания', () => {
+            const manager = new CanvasManagerClass(makeDeps());
+            manager.init(makeCanvas());
+
+            manager.onMouseDown(touchStart(100, 200));
+            expect(contextMenu.set).not.toHaveBeenCalled();
+
+            vi.advanceTimersByTime(500);
+
+            expect(contextMenu.set).toHaveBeenCalledWith({
+                visible: true,
+                x: 100,
+                y: 200,
+                target,
+            });
+        });
+
+        it('не открывает меню, если палец сдвинулся', () => {
+            const manager = new CanvasManagerClass(makeDeps());
+            manager.init(makeCanvas());
+
+            manager.onMouseDown(touchStart(100, 200));
+            manager.onMouseMove({ e: { type: 'touchmove', changedTouches: [{ clientX: 120, clientY: 200 }] } });
+
+            vi.advanceTimersByTime(500);
+
+            expect(contextMenu.set).not.toHaveBeenCalled();
+        });
+
+        it('не открывает меню, если палец отпущен раньше', () => {
+            const manager = new CanvasManagerClass(makeDeps());
+            manager.init(makeCanvas());
+
+            manager.onMouseDown(touchStart(100, 200));
+            manager.onMouseUp();
+
+            vi.advanceTimersByTime(500);
+
+            expect(contextMenu.set).not.toHaveBeenCalled();
+        });
+
+        it('не открывает меню для обычного клика мышью', () => {
+            const manager = new CanvasManagerClass(makeDeps());
+            manager.init(makeCanvas());
+
+            manager.onMouseDown({ e: { type: 'mousedown', clientX: 100, clientY: 200 }, target });
+            vi.advanceTimersByTime(500);
+
+            expect(contextMenu.set).not.toHaveBeenCalled();
         });
     });
 
