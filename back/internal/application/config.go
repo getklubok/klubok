@@ -135,7 +135,7 @@ type Mailer struct {
 	Password string `env:"MAILER_PASSWORD"`
 
 	// From - адрес отправителя.
-	// Пример: "Klubok <no-reply@domain.tld>"
+	// Пример: "Клубок <no-reply@domain.tld>"
 	From string `env:"MAILER_FROM"`
 
 	// SendInterval - интервал между отправками писем воркером.

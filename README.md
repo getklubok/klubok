@@ -1,6 +1,6 @@
-<p align="center"><img src="logo.png" alt="Klubok" width="200"></p>
+<p align="center"><img src="logo.png" alt="Клубок" width="200"></p>
 
-# Klubok
+# Клубок
 
 [![audit](https://github.com/getklubok/klubok/actions/workflows/audit.yml/badge.svg?branch=master)](https://github.com/getklubok/klubok/actions/workflows/audit.yml)
 [![build](https://github.com/getklubok/klubok/actions/workflows/build.yml/badge.svg)](https://github.com/getklubok/klubok/actions/workflows/build.yml)

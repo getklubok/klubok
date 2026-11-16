@@ -1,11 +1,11 @@
 ---
-name: Klubok
+name: Клубок
 home: ../
 ---
 
-# Klubok
+# Клубок
 
-<img src="../logo.png" alt="Klubok" width="200">
+<img src="../logo.png" alt="Клубок" width="200">
 
 [![audit](https://github.com/getklubok/klubok/actions/workflows/audit.yml/badge.svg?branch=master)](https://github.com/getklubok/klubok/actions/workflows/audit.yml)
 [![build](https://github.com/getklubok/klubok/actions/workflows/build.yml/badge.svg)](https://github.com/getklubok/klubok/actions/workflows/build.yml)

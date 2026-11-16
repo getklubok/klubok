@@ -58,7 +58,7 @@ export MAILER_HOST="smtp.example.com"
 export MAILER_PORT=465
 export MAILER_USERNAME="no-reply@domain.tld"
 export MAILER_PASSWORD="password"
-export MAILER_FROM="Klubok <no-reply@domain.tld>"
+export MAILER_FROM="Клубок <no-reply@domain.tld>"
 
 # for integration tests
 # host=127.0.0.1

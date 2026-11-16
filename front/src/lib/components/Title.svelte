@@ -3,7 +3,7 @@
 </script>
 
 <div class="title">
-    <strong>Klubok</strong>
+    <strong>Клубок</strong>
     <span class="version">v{appVersion}</span>
 </div>
 

@@ -177,7 +177,7 @@
 
         <div class="embed-topbar">
             <span class="diagram-title">{diagramInfo?.title}</span>
-            <a href="/" target="_top" class="brand-link">Klubok</a>
+            <a href="/" target="_top" class="brand-link">Клубок</a>
         </div>
 
         <div class="zoom-panel">
