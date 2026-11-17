@@ -1,6 +1,7 @@
 <script lang="ts">
     import Fa from 'svelte-fa';
     import {
+        faArrowUpRightFromSquare,
         faCrosshairs,
         faExpand,
         faQuestionCircle,
@@ -37,6 +38,9 @@
 
     let canvasElement: HTMLCanvasElement;
     let canvas: FabricCanvas;
+
+    // Текущий URL embed-страницы: та же диаграмма и тема, но без iframe.
+    const fullscreenUrl = window.location.href;
 
     let loading = $state(true);
     let error: string | null = $state(null);
@@ -178,11 +182,11 @@
         <canvas bind:this={canvasElement}></canvas>
 
         <div class="embed-topbar">
-            <span class="diagram-title">{diagramInfo?.title}</span>
+            <span class="diagram-title" title={diagramInfo?.title}>{diagramInfo?.title}</span>
             <a href="/" target="_top" class="brand-link">Клубок</a>
         </div>
 
-        <div class="zoom-panel">
+        <div class="embed-controls">
             <span class="zoom-label"><strong>{currentZoom}%</strong></span>
             <div class="btn-group">
                 <button
@@ -231,6 +235,16 @@
                     <Fa icon={faFileExport} style="vertical-align: middle;" />
                 </button>
             </div>
+
+            <a
+                class="btn btn-sm btn-outline-secondary"
+                href={fullscreenUrl}
+                target="_blank"
+                rel="noopener"
+                title="Открыть на полный экран"
+            >
+                <Fa icon={faArrowUpRightFromSquare} style="vertical-align: middle;" />
+            </a>
 
             <div class="btn-group">
                 <button
@@ -344,7 +358,7 @@
         font-size: 0.8rem;
     }
 
-    .zoom-panel {
+    .embed-controls {
         position: absolute;
         top: calc(2.5rem + 8px);
         left: 0.75rem;
@@ -376,8 +390,11 @@
     }
 
     .diagram-title {
+        /* Заголовок занимает всю свободную ширину iframe и обрезается только при нехватке места. */
+        flex: 1;
+        min-width: 0;
+        margin-right: 0.75rem;
         font-weight: 500;
-        max-width: 200px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
