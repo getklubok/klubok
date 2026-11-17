@@ -1,0 +1,31 @@
+# Клубок
+
+> audit build
+
+Each link leads to the Markdown copy of a page of the documentation. llms-full.txt holds all of them in 1 file.
+
+## Get started
+
+- [Клубок](index.md): audit build
+- [Установка](get-started/install.md): Клубок разворачивается с помощью Docker Compose и nginx по схеме Blue-Green: приложение запускается в контейнере blue или green, а nginx проксирует запросы на активный.
+
+## Administration
+
+- [Обновление](administration/update.md): Используется Blue-Green Deployment: новая версия поднимается на свободных портах рядом со старой, проверяется и только потом получает трафик.
+- [Фича-флаги](administration/feature-flags.md): Фича-флаги задаются переменными окружения в секции Feature конфига backend (back/internal/application/config.go). Все выключены по умолчанию, кроме FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED.
+- [Метрики](administration/metrics.md): Prometheus-метрики отдаются на http://<host>:<METRICS_PORT>/metrics (по умолчанию порт 6060).
+- [Политика обработки персональных данных](administration/privacy-policy.md): Политика необязательна: по умолчанию compose-файлы не монтируют privacy.md, и приложение возвращает 404, а интерфейс показывает сообщение «Файл политики не найден». Это нормально для инсталляций на fake-аккаунтах, где персональные данные не обрабатываются.
+
+## Proxy
+
+- [Nginx](proxy/nginx.md): nginx — единственная точка входа: принимает HTTPS, проксирует HTTP и WebSocket на активный контейнер blue или green и добавляет базовые security-заголовки. Готовый конфиг лежит в deploy/nginx.conf, при установке он копируется в /etc/nginx/sites-available/domain.tld (см. Установку).
+
+## Database
+
+- [PostgreSQL](database/postgresql.md): База данных запускается в контейнере klubok_postgres (см. compose-файлы в каталоге deploy).
+
+## Development
+
+- [Локальный запуск](development/setup.md): Понадобятся Go 1.26.11 или новее и Docker.
+- [Релиз](development/release.md): Из корня репозитория:
+- [Версии инструментов](development/toolchain.md): При обновлении Go, golangci-lint и Alpine меняйте версии согласованно в перечисленных файлах.
