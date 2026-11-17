@@ -129,6 +129,7 @@ function makeCanvas() {
         selection: true,
         skipTargetFind: false,
         getActiveObject: vi.fn().mockReturnValue(undefined),
+        discardActiveObject: vi.fn(),
         defaultCursor: 'default',
         hoverCursor: 'default',
         viewportTransform: [1, 0, 0, 1, 0, 0],
@@ -1059,6 +1060,133 @@ describe('CanvasManager', () => {
         });
     });
 
+    describe('onObjectMoving (мультивыделение)', () => {
+        it('привязывает выделение к сетке и обновляет связи фигур', () => {
+            const deps = makeDeps();
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            manager.init(canvas);
+
+            const child = { type: 'group', name: 's1' };
+            const selection = {
+                type: 'activeselection',
+                left: 13,
+                top: 7,
+                width: 100,
+                height: 100,
+                scaleX: 1,
+                scaleY: 1,
+                getObjects: vi.fn().mockReturnValue([child]),
+            };
+
+            manager.onObjectMoving({ target: selection });
+
+            expect(selection.left).toBe(10);
+            expect(selection.top).toBe(10);
+            expect(mockConnectionStoreManager.getByShapeId).toHaveBeenCalledWith('s1');
+            expect(mockCommentBadgeManager.updatePosition).toHaveBeenCalledWith(child);
+        });
+    });
+
+    describe('onObjectModified (мультивыделение)', () => {
+        it('сохраняет абсолютные координаты всех фигур выделения', () => {
+            const deps = makeDeps();
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            manager.init(canvas);
+
+            const childA = { type: 'group', name: 's1', getXY: () => ({ x: 40, y: 60 }) };
+            const childB = { type: 'group', name: 's2', getXY: () => ({ x: 80, y: 100 }) };
+            const selection = {
+                type: 'activeselection',
+                getObjects: vi.fn().mockReturnValue([childA, childB]),
+            };
+            mockShapeStoreManager.getById.mockImplementation((id: string) => makeShape({ id: id, left: 0, top: 0 }));
+
+            manager.onObjectModified({ target: selection });
+
+            expect(mockShapeStoreManager.update).toHaveBeenCalledWith(
+                expect.objectContaining({ id: 's1', left: 40, top: 60 }),
+            );
+            expect(mockShapeStoreManager.update).toHaveBeenCalledWith(
+                expect.objectContaining({ id: 's2', left: 80, top: 100 }),
+            );
+        });
+
+        it('игнорирует элементы выделения, не являющиеся фигурами', () => {
+            const deps = makeDeps();
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            manager.init(canvas);
+
+            const connection = { type: 'group', isConnection: true };
+            const selection = {
+                type: 'activeselection',
+                getObjects: vi.fn().mockReturnValue([connection]),
+            };
+
+            manager.onObjectModified({ target: selection });
+
+            expect(mockShapeStoreManager.update).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('onSelectionCreated (мультивыделение)', () => {
+        it('убирает стрелки из выделения и применяет тему к рамке', () => {
+            const deps = makeDeps();
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            manager.init(canvas);
+
+            const shapeA = { type: 'group', name: 's1' };
+            const shapeB = { type: 'group', name: 's2' };
+            const connection = { type: 'group', isConnection: true };
+            let objects = [shapeA, shapeB, connection];
+            const selection = {
+                type: 'activeselection',
+                getObjects: vi.fn().mockImplementation(() => objects),
+                remove: vi.fn().mockImplementation((obj: unknown) => {
+                    objects = objects.filter((o) => o !== obj);
+                }),
+                size: vi.fn().mockImplementation(() => objects.length),
+            };
+            canvas.getActiveObject = vi.fn().mockReturnValue(selection);
+
+            manager.onSelectionCreated({ selected: [shapeA, connection] });
+
+            expect(selection.remove).toHaveBeenCalledWith(connection);
+            expect(canvas.setActiveObject).not.toHaveBeenCalled();
+            expect(canvas.discardActiveObject).not.toHaveBeenCalled();
+            expect(mockFabricManager.applySelectionControlsTheme).toHaveBeenCalledWith(selection, false);
+            expect(canvas.requestRenderAll).toHaveBeenCalled();
+        });
+
+        it('переключает выделение на оставшуюся фигуру', () => {
+            const deps = makeDeps();
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            manager.init(canvas);
+
+            const shape = { type: 'group', name: 's1' };
+            const connection = { type: 'group', isConnection: true };
+            let objects = [shape, connection];
+            const selection = {
+                type: 'activeselection',
+                getObjects: vi.fn().mockImplementation(() => objects),
+                remove: vi.fn().mockImplementation((obj: unknown) => {
+                    objects = objects.filter((o) => o !== obj);
+                }),
+                size: vi.fn().mockImplementation(() => objects.length),
+            };
+            canvas.getActiveObject = vi.fn().mockReturnValue(selection);
+
+            manager.onSelectionUpdated({ selected: [connection] });
+
+            expect(selection.remove).toHaveBeenCalledWith(connection);
+            expect(canvas.setActiveObject).toHaveBeenCalledWith(shape);
+        });
+    });
+
     describe('recolorAll', () => {
         it('ничего не делает если canvas не задан', () => {
             const deps = makeDeps();
@@ -1091,6 +1219,20 @@ describe('CanvasManager', () => {
 
             expect(canvas.selectionColor).toBe('rgba(0,0,0,0.1)');
             expect(canvas.selectionBorderColor).toBe('#333');
+        });
+
+        it('применяет тему к рамке активного мультивыделения', () => {
+            const deps = makeDeps();
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            manager.init(canvas);
+
+            const selection = { type: 'activeselection' };
+            canvas.getActiveObject = vi.fn().mockReturnValue(selection);
+
+            manager.recolorAll(true);
+
+            expect(mockFabricManager.applySelectionControlsTheme).toHaveBeenCalledWith(selection, true);
         });
 
         it('перекрашивает children групп-коннекций', () => {

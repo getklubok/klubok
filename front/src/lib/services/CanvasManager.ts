@@ -6,6 +6,7 @@ import {
     Polyline as FabricPolyline,
     FabricObject,
     IText as FabricIText,
+    type ActiveSelection as FabricActiveSelection,
 } from 'fabric/es';
 import { ulid } from 'ulid';
 
@@ -196,6 +197,7 @@ export class CanvasManager {
         this.isDark = isDark;
 
         this.applySelectionControlsTheme(this.canvas, isDark);
+        this.applyActiveSelectionTheme();
 
         this.canvas.getObjects().forEach((obj) => {
             // Группы-коннекции — перекрашиваем children (line.stroke, arrowHead.fill)
@@ -426,6 +428,14 @@ export class CanvasManager {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public onObjectMoving = (options: any) => {
         if (!this.canvas) return;
+
+        if (options.target?.type === 'activeselection') {
+            const selection = options.target as FabricActiveSelection;
+            this.snapToGridObj(selection, 'moving');
+            this.updateSelectionLinks(selection);
+            return;
+        }
+
         if (!isShapeGroup(options.target)) return;
 
         const obj = options.target as FabricGroup;
@@ -450,6 +460,12 @@ export class CanvasManager {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public onObjectModified = (options: any) => {
         if (!this.canvas) return;
+
+        if (options.target?.type === 'activeselection') {
+            this.persistSelection(options.target as FabricActiveSelection);
+            return;
+        }
+
         if (!isShapeGroup(options.target)) return;
 
         const obj = options.target as FabricGroup;
@@ -472,6 +488,37 @@ export class CanvasManager {
             });
         }
     };
+
+    /** Обновляет связи и бейджи выбранных фигур после сдвига всего выделения. */
+    private updateSelectionLinks(selection: FabricActiveSelection) {
+        selection.getObjects().forEach((obj) => {
+            if (!isShapeGroup(obj)) return;
+
+            const shapeObj = obj as FabricGroup;
+            this.updateConnectionByShapeId(shapeObj.name || '');
+            commentBadgeManager.updatePosition(shapeObj);
+        });
+    }
+
+    /** Сохраняет абсолютные координаты всех фигур из мультивыделения (запускает автосохранение). */
+    private persistSelection(selection: FabricActiveSelection) {
+        selection.getObjects().forEach((obj) => {
+            if (!isShapeGroup(obj)) return;
+
+            const shapeObj = obj as FabricGroup;
+            const shape = shapeStoreManager.getById(shapeObj.name || '');
+            if (!shape) return;
+
+            // В ActiveSelection left/top фигуры относительны выделения, поэтому берём абсолютный центр.
+            const center = shapeObj.getXY();
+            shapeStoreManager.update({ ...shape, left: center.x, top: center.y });
+
+            this.updateConnectionByShapeId(shapeObj.name || '');
+            commentBadgeManager.updatePosition(shapeObj);
+        });
+
+        this.syncLayers();
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public onContextMenu = (options: any) => {
@@ -517,17 +564,58 @@ export class CanvasManager {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public onSelectionCreated = (options: any) => {
-        selectedObject.set(null);
-        if (!isShapeGroup(options.selected?.[0])) return;
-        this.updateDebug(options.selected?.[0]);
+        this.onSelectionChanged(options);
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public onSelectionUpdated = (options: any) => {
-        selectedObject.set(null);
-        if (!isShapeGroup(options.selected?.[0])) return;
-        this.updateDebug(options.selected?.[0]);
+        this.onSelectionChanged(options);
     };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private onSelectionChanged(options: any) {
+        const filtered = this.excludeConnectionsFromSelection();
+        this.applyActiveSelectionTheme();
+
+        selectedObject.set(null);
+        const target = filtered ? this.canvas?.getActiveObject() : options.selected?.[0];
+        if (!isShapeGroup(target)) return;
+        this.updateDebug(target);
+    }
+
+    /**
+     * Убирает стрелки из мультивыделения: они не перемещаются, а перерисовываются
+     * при движении связанных фигур. Возвращает true, если выделение изменилось.
+     */
+    private excludeConnectionsFromSelection(): boolean {
+        if (!this.canvas) return false;
+
+        const active = this.canvas.getActiveObject();
+        if (active?.type !== 'activeselection') return false;
+
+        const selection = active as FabricActiveSelection;
+        const connections = selection.getObjects().filter((obj) => obj.isConnection);
+        if (connections.length === 0) return false;
+
+        connections.forEach((conn) => selection.remove(conn));
+
+        if (selection.size() === 0) {
+            this.canvas.discardActiveObject();
+        } else if (selection.size() === 1) {
+            this.canvas.setActiveObject(selection.getObjects()[0]);
+        }
+
+        this.canvas.requestRenderAll();
+        return true;
+    }
+
+    /** Применяет тему к рамке мультивыделения: она не входит в canvas.getObjects(). */
+    private applyActiveSelectionTheme() {
+        const active = this.canvas?.getActiveObject();
+        if (active?.type !== 'activeselection') return;
+
+        fabricManager.applySelectionControlsTheme(active, this.isDark);
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public onSelectionCleared = (_options: any) => {

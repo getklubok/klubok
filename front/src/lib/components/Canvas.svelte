@@ -73,10 +73,8 @@
         FabricObject.prototype.originX = 'center';
         FabricObject.prototype.originY = 'center';
 
-        FabricActiveSelection.prototype.set({
-            hasControls: false,
-            hasBorders: true,
-        });
+        FabricActiveSelection.ownDefaults.hasControls = false;
+        FabricActiveSelection.ownDefaults.hasBorders = true;
 
         // Инициализируем Canvas
         canvas = new FabricCanvas(canvasElement, {
