@@ -53,6 +53,13 @@
     let canvasElement: HTMLCanvasElement;
     let canvas: FabricCanvas;
 
+    function isEditableTarget(target: EventTarget | null): boolean {
+        const el = target as HTMLElement | null;
+        if (!el) return false;
+
+        return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable;
+    }
+
     // Фон канваса берём из CSS-переменной темы (--diagram-bg), а не дублируем палитру в JS.
     function getDiagramBackground(): string {
         const bg = getComputedStyle(document.documentElement).getPropertyValue('--diagram-bg').trim();
@@ -80,6 +87,7 @@
         });
 
         canvas.on('mouse:down', canvasManager.onMouseDown);
+        canvas.on('mouse:down:before', canvasManager.onMouseDownBefore);
         canvas.on('mouse:move', canvasManager.onMouseMove);
         canvas.on('mouse:up', canvasManager.onMouseUp);
         canvas.on('mouse:wheel', canvasManager.onMouseWheel);
@@ -114,11 +122,36 @@
         // Инициализируем координаты
         coordinatesManager.update();
 
+        // Space — временное панорамирование, пока клавиша зажата.
+        const upperCanvas = canvas.upperCanvasEl;
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.code !== 'Space' || event.repeat) return;
+            if (!upperCanvas.matches(':hover') || isEditableTarget(event.target)) return;
+
+            event.preventDefault();
+            canvasManager.setTemporaryPan(true);
+        };
+
+        const handleKeyUp = (event: KeyboardEvent) => {
+            if (event.code === 'Space') canvasManager.setTemporaryPan(false);
+        };
+
+        const handleWindowBlur = () => canvasManager.setTemporaryPan(false);
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        window.addEventListener('blur', handleWindowBlur);
+
         const unsubscribeTheme = resolvedThemeStore.subscribe(applyCanvasBackground);
 
         return () => {
             // Отменяем подписку до очистки canvas, чтобы не обращаться к устаревшему экземпляру
             unsubscribeTheme();
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+            window.removeEventListener('blur', handleWindowBlur);
+            canvasManager.setTemporaryPan(false);
             // Очищаем canvas при размонтировании компонента
             canvas.dispose();
             canvasManager.reset();

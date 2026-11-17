@@ -1,5 +1,5 @@
 <script lang="ts">
-    let { show = $bindable(false) } = $props();
+    let { show = $bindable(false), panAlways = false } = $props();
 </script>
 
 {#if show}
@@ -10,7 +10,12 @@
             <h3>Управление диаграммой</h3>
             <ul>
                 <li><kbd>Колесико мыши</kbd> — масштабирование</li>
-                <li><kbd>CTRL</kbd> + <kbd>ЛКМ</kbd> — перемещение диаграммы</li>
+                {#if panAlways}
+                    <li><kbd>ЛКМ</kbd> — панорамирование</li>
+                {:else}
+                    <li><kbd>Инструмент «Рука»</kbd> — панорамирование</li>
+                    <li><kbd>Пробел</kbd> + <kbd>ЛКМ</kbd> — панорамирование в любом режиме</li>
+                {/if}
             </ul>
             <button class="btn btn-sm btn-primary" onclick={() => (show = false)}>Закрыть</button>
         </div>

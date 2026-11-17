@@ -127,6 +127,8 @@ function makeCanvas() {
         zoomToPoint: vi.fn(),
         sendObjectToBack: vi.fn(),
         selection: true,
+        skipTargetFind: false,
+        getActiveObject: vi.fn().mockReturnValue(undefined),
         defaultCursor: 'default',
         hoverCursor: 'default',
         viewportTransform: [1, 0, 0, 1, 0, 0],
@@ -295,6 +297,33 @@ describe('CanvasManager', () => {
             expect(canvas.defaultCursor).toBe('default');
         });
 
+        it('pan → курсор grab, поиск объектов и выделение выключены', () => {
+            const deps = makeDeps();
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            manager.init(canvas);
+
+            manager.setCurrentDrawingMode('pan');
+
+            expect(canvas.defaultCursor).toBe('grab');
+            expect(canvas.hoverCursor).toBe('grab');
+            expect(canvas.skipTargetFind).toBe(true);
+            expect(canvas.selection).toBe(false);
+        });
+
+        it('возврат из pan в select включает выделение и поиск объектов', () => {
+            const deps = makeDeps();
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            manager.init(canvas);
+
+            manager.setCurrentDrawingMode('pan');
+            manager.setCurrentDrawingMode('select');
+
+            expect(canvas.skipTargetFind).toBe(false);
+            expect(canvas.selection).toBe(true);
+        });
+
         it('arrow → hoverCursor=pointer', () => {
             const deps = makeDeps();
             const manager = new CanvasManagerClass(deps);
@@ -338,7 +367,7 @@ describe('CanvasManager', () => {
             manager.setDiagramInfo(makeDiagramInfo());
 
             manager.setCurrentDrawingMode('text');
-            manager.onMouseDown({ e: { ctrlKey: false } });
+            manager.onMouseDown({ e: {} });
 
             expect(mockFabricManager.createShape).toHaveBeenCalled();
             expect(mockShapeStoreManager.add).toHaveBeenCalled();
@@ -720,40 +749,123 @@ describe('CanvasManager', () => {
     });
 
     describe('onMouseDown (panning)', () => {
-        it('включает панорамирование по Ctrl+клик', () => {
+        it('панорамирует в режиме «Рука»', () => {
+            const deps = makeDeps();
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            manager.init(canvas);
+            manager.setCurrentDrawingMode('pan');
+
+            manager.onMouseDown({
+                e: { clientX: 100, clientY: 200 },
+            });
+
+            expect(canvas.defaultCursor).toBe('grab');
+            expect(canvas.hoverCursor).toBe('grab');
+        });
+
+        it('панорамирует по Space в режиме выбора', () => {
+            const deps = makeDeps();
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            manager.init(canvas);
+            manager.setTemporaryPan(true);
+
+            manager.onMouseDown({ e: { clientX: 100, clientY: 200 } });
+
+            expect(canvas.defaultCursor).toBe('grab');
+        });
+
+        it('не сбрасывает выделение при панорамировании', () => {
+            const deps = makeDeps();
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            manager.init(canvas);
+            const active = { type: 'group', name: 's1' };
+            canvas.getActiveObject = vi.fn().mockReturnValue(active);
+            canvas.getObjects = vi.fn().mockReturnValue([active]);
+
+            manager.setTemporaryPan(true);
+            manager.onMouseDownBefore({ e: {} });
+            manager.onMouseDown({ e: { clientX: 0, clientY: 0 } });
+            manager.onMouseUp();
+
+            expect(canvas.setActiveObject).toHaveBeenCalledWith(active);
+        });
+
+        it('не панорамирует по ЛКМ в режиме выбора', () => {
             const deps = makeDeps();
             const manager = new CanvasManagerClass(deps);
             const canvas = makeCanvas();
             manager.init(canvas);
 
-            manager.onMouseDown({
-                e: { ctrlKey: true, clientX: 100, clientY: 200 },
-            });
+            manager.onMouseDown({ e: { clientX: 100, clientY: 200 } });
+            manager.onMouseMove({ e: { clientX: 150, clientY: 220 } });
 
-            expect(canvas.selection).toBe(false);
-            expect(canvas.defaultCursor).toBe('grab');
-            expect(canvas.hoverCursor).toBe('grab');
+            expect(canvas.viewportTransform[4]).toBe(0);
+            expect(canvas.viewportTransform[5]).toBe(0);
+        });
+
+        it('не панорамирует правой кнопкой', () => {
+            const deps = makeDeps();
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            manager.init(canvas);
+            manager.setCurrentDrawingMode('pan');
+
+            manager.onMouseDown({ e: { button: 2, clientX: 0, clientY: 0 } });
+            manager.onMouseMove({ e: { clientX: 50, clientY: 50 } });
+
+            expect(canvas.viewportTransform[4]).toBe(0);
+            expect(canvas.viewportTransform[5]).toBe(0);
         });
 
         it('ничего не делает если canvas не задан', () => {
             const deps = makeDeps();
             const manager = new CanvasManagerClass(deps);
 
-            manager.onMouseDown({ e: { ctrlKey: true } });
+            manager.setTemporaryPan(true);
+            manager.onMouseDown({ e: {} });
 
             expect(true).toBe(true);
         });
+    });
 
-        it('select mode — включает selection', () => {
+    describe('setTemporaryPan', () => {
+        it('включает pan-состояние и курсор grab', () => {
             const deps = makeDeps();
             const manager = new CanvasManagerClass(deps);
             const canvas = makeCanvas();
             manager.init(canvas);
 
-            manager.setCurrentDrawingMode('select');
-            manager.onMouseDown({ e: { ctrlKey: false } });
+            manager.setTemporaryPan(true);
 
+            expect(canvas.skipTargetFind).toBe(true);
+            expect(canvas.selection).toBe(false);
+            expect(canvas.defaultCursor).toBe('grab');
+        });
+
+        it('выключает pan-состояние и возвращает выделение в select', () => {
+            const deps = makeDeps();
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            manager.init(canvas);
+
+            manager.setTemporaryPan(true);
+            manager.setTemporaryPan(false);
+
+            expect(canvas.skipTargetFind).toBe(false);
             expect(canvas.selection).toBe(true);
+        });
+
+        it('ничего не делает если canvas не задан', () => {
+            const deps = makeDeps();
+            const manager = new CanvasManagerClass(deps);
+
+            manager.setTemporaryPan(true);
+            manager.setTemporaryPan(false);
+
+            expect(true).toBe(true);
         });
     });
 
@@ -843,12 +955,18 @@ describe('CanvasManager', () => {
             const manager = new CanvasManagerClass(deps);
             const canvas = makeCanvas();
             manager.init(canvas);
+            manager.setCurrentDrawingMode('pan');
 
-            // Включаем панорамирование
-            manager.onMouseDown({ e: { ctrlKey: true, clientX: 0, clientY: 0 } });
+            // Включаем панорамирование и отпускаем кнопку
+            manager.onMouseDown({ e: { clientX: 0, clientY: 0 } });
             manager.onMouseUp();
 
-            expect(canvas.selection).toBe(true); // select mode
+            // Дальнейшее движение мыши не двигает viewport
+            manager.onMouseMove({ e: { clientX: 50, clientY: 50 } });
+
+            expect(canvas.viewportTransform[4]).toBe(0);
+            expect(canvas.viewportTransform[5]).toBe(0);
+            expect(canvas.defaultCursor).toBe('grab');
         });
     });
 
@@ -860,7 +978,8 @@ describe('CanvasManager', () => {
             manager.init(canvas);
 
             // Начинаем панорамирование
-            manager.onMouseDown({ e: { ctrlKey: true, clientX: 100, clientY: 100 } });
+            manager.setTemporaryPan(true);
+            manager.onMouseDown({ e: { clientX: 100, clientY: 100 } });
 
             // Двигаем мышь
             manager.onMouseMove({ e: { clientX: 150, clientY: 120 } });

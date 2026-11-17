@@ -119,6 +119,8 @@ export class CanvasManager {
     private isPanning: boolean = false;
     private lastPosX: number = 0;
     private lastPosY: number = 0;
+    private isTemporaryPan: boolean = false;
+    private activeObjectBeforePan: FabricObject | null = null;
 
     // Переменные для отслеживания курсора
     private lastCursorSendTime: number = 0;
@@ -157,6 +159,9 @@ export class CanvasManager {
         this.canvas = null;
         this.diagramInfo = null;
         this.currentDrawingMode = 'select';
+        this.isPanning = false;
+        this.isTemporaryPan = false;
+        this.activeObjectBeforePan = null;
         this.remoteCursors = {};
         this.cancelLongPress();
 
@@ -232,6 +237,7 @@ export class CanvasManager {
         this.currentDrawingMode = 'select';
         this.remoteCursors = {};
 
+        this.applyPanState();
         this.updateCanvasCursor();
         this.restoreState();
     }
@@ -239,20 +245,52 @@ export class CanvasManager {
     public setCurrentDrawingMode(mode: DrawingMode) {
         this.currentDrawingMode = mode;
         this.cancelLongPress();
+        this.applyPanState();
         this.updateCanvasCursor();
     }
+
+    /** Временное панорамирование, пока зажата клавиша (Space). */
+    public setTemporaryPan(active: boolean) {
+        this.isTemporaryPan = active;
+        this.applyPanState();
+        this.updateCanvasCursor();
+    }
+
+    /** В pan-режиме Fabric не должен искать объекты под курсором. */
+    private applyPanState() {
+        if (!this.canvas) return;
+
+        const isPan = this.isPanActive();
+        this.canvas.skipTargetFind = isPan;
+        this.canvas.selection = !isPan && this.currentDrawingMode === 'select';
+    }
+
+    private isPanActive(): boolean {
+        return this.isTemporaryPan || this.currentDrawingMode === 'pan';
+    }
+
+    /** Запоминаем выделение до панорамирования, чтобы не сбрасывать его. */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    public onMouseDownBefore = (options: any) => {
+        if (!this.canvas) return;
+
+        this.activeObjectBeforePan =
+            this.isPanActive() && !options.e.button ? (this.canvas.getActiveObject() ?? null) : null;
+    };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public onMouseDown = (options: any) => {
         if (!this.canvas) return;
         const event = options.e;
 
-        // Обрабатываем панорамирование (CTRL + левая кнопка)
-        if (event.ctrlKey) {
+        // Панорамируем и создаём объекты только левой кнопкой мыши
+        if (event.button) return;
+
+        // Панорамирование: инструмент «Рука» или зажатый Space.
+        if (this.isPanActive()) {
             this.isPanning = true;
             this.lastPosX = event.clientX;
             this.lastPosY = event.clientY;
-            this.canvas.selection = false;
             this.canvas.defaultCursor = 'grab';
             this.canvas.hoverCursor = 'grab';
             return;
@@ -260,8 +298,6 @@ export class CanvasManager {
 
         switch (this.currentDrawingMode) {
             case 'select': {
-                this.canvas.selection = true;
-
                 // На тач-устройствах правой кнопки нет — открываем то же меню долгим нажатием
                 if (
                     isTouchEvent(event) &&
@@ -342,8 +378,14 @@ export class CanvasManager {
         this.cancelLongPress();
         this.isPanning = false;
 
-        // Восстанавливаем выделение в зависимости от режима
-        this.canvas.selection = this.currentDrawingMode === 'select';
+        // Панорамирование не должно сбрасывать выделение
+        if (this.activeObjectBeforePan && this.canvas.getObjects().includes(this.activeObjectBeforePan)) {
+            this.canvas.setActiveObject(this.activeObjectBeforePan);
+        }
+        this.activeObjectBeforePan = null;
+
+        // Восстанавливаем выделение с учётом pan-режима
+        this.applyPanState();
 
         // Обновляем курсоры в зависимости от режима
         this.updateCanvasCursor();
@@ -1099,6 +1141,12 @@ export class CanvasManager {
 
     private updateCanvasCursor() {
         if (!this.canvas) return;
+
+        if (this.isPanActive()) {
+            this.canvas.defaultCursor = 'grab';
+            this.canvas.hoverCursor = 'grab';
+            return;
+        }
 
         switch (this.currentDrawingMode) {
             case 'select': {

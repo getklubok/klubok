@@ -2,6 +2,7 @@
     import Fa from 'svelte-fa';
     import {
         faHandPointer,
+        faHand,
         faSquare,
         faCircle,
         faDiamond,
@@ -41,6 +42,7 @@
     }
 
     const isSelectActive = $derived(currentMode === 'select');
+    const isPanActive = $derived(currentMode === 'pan');
     const isSquareActive = $derived(currentMode === 'square');
     const isEllipseActive = $derived(currentMode === 'ellipse');
     const isDiamondActive = $derived(currentMode === 'diamond');
@@ -61,6 +63,18 @@
             title="Выбор"
         >
             <Fa fw icon={faHandPointer} />
+        </button>
+
+        <button
+            class="btn text-start"
+            class:active={isPanActive}
+            class:btn-outline-primary={!isPanActive}
+            class:btn-primary={isPanActive}
+            type="button"
+            onclick={() => setDrawingMode('pan')}
+            title="Рука: Панорамирование"
+        >
+            <Fa fw icon={faHand} />
         </button>
 
         {#if hasPermission(permission)}

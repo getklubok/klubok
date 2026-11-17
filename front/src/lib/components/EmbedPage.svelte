@@ -135,6 +135,8 @@
                 coordinatesManager.update();
 
                 canvasManager.setDiagramInfo(diagramInfo as DiagramInfo);
+                // Embed только для просмотра — ЛКМ сразу двигает канвас.
+                canvasManager.setCurrentDrawingMode('pan');
 
                 // Канвас готов — $effect темы перекрасит его под embedTheme
                 canvasReady = true;
@@ -252,7 +254,7 @@
         </div>
     </div>
 
-    <HelpModal bind:show={showHelp} />
+    <HelpModal bind:show={showHelp} panAlways />
 
     {#if loading}
         <div class="loading-screen">

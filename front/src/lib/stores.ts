@@ -103,7 +103,7 @@ export type CursorData = {
     y: number;
 };
 
-export type DrawingMode = 'select' | ElementType | 'arrow';
+export type DrawingMode = 'select' | 'pan' | ElementType | 'arrow';
 
 export type ContextMenuState = {
     visible: boolean;
