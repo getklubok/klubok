@@ -112,7 +112,7 @@ func TestNewMuxRouting(t *testing.T) {
 			name:           "robots.txt получает web-набор",
 			target:         "/robots.txt",
 			wantStatus:     http.StatusOK,
-			wantBody:       "Disallow: /embed/",
+			wantBody:       "Disallow: /\nAllow: /embed/",
 			wantMiddleware: "web",
 		},
 		{
@@ -250,6 +250,7 @@ func TestStaticHandler(t *testing.T) {
 			assert.Equal(t, tt.wantNoCache, rec.Header().Get("Pragma") == "no-cache")
 			assert.Equal(t, tt.wantCSP, rec.Header().Get("Content-Security-Policy"))
 			assert.Equal(t, tt.wantFrameOptions, rec.Header().Get("X-Frame-Options"))
+			assert.Equal(t, "noindex, nofollow", rec.Header().Get("X-Robots-Tag"))
 		})
 	}
 }
@@ -317,6 +318,7 @@ func TestPrivacyHandler(t *testing.T) {
 			assert.Equal(t, "no-cache", rec.Header().Get("Pragma"))
 			assert.Equal(t, defaultContentSecurityPolicy, rec.Header().Get("Content-Security-Policy"))
 			assert.Equal(t, "DENY", rec.Header().Get("X-Frame-Options"))
+			assert.Equal(t, "noindex, nofollow", rec.Header().Get("X-Robots-Tag"))
 			assert.Contains(t, rec.Body.String(), tt.wantBody)
 		})
 	}

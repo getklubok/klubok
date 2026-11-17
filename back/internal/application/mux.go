@@ -62,7 +62,10 @@ func newMux(
 func robotsTxtHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		_, _ = w.Write([]byte("User-agent: *\nDisallow: /embed/\n"))
+		// Embed-страницы открыты для обхода намеренно: краулер должен загрузить
+		// страницу и увидеть X-Robots-Tag: noindex, иначе URL с токеном из чужих
+		// iframe может попасть в индекс без содержимого.
+		_, _ = w.Write([]byte("User-agent: *\nDisallow: /\nAllow: /embed/\n"))
 	})
 }
 
@@ -130,12 +133,14 @@ func isEmbedPage(p string) bool {
 
 func writeEmbedPageHeaders(w http.ResponseWriter) {
 	w.Header().Set("Content-Security-Policy", embedContentSecurityPolicy)
+	w.Header().Set("X-Robots-Tag", "noindex, nofollow")
 	writeNoCacheHeaders(w)
 }
 
 func writeDefaultPageHeaders(w http.ResponseWriter) {
 	w.Header().Set("Content-Security-Policy", defaultContentSecurityPolicy)
 	w.Header().Set("X-Frame-Options", "DENY")
+	w.Header().Set("X-Robots-Tag", "noindex, nofollow")
 }
 
 func writeNoCacheHeaders(w http.ResponseWriter) {
