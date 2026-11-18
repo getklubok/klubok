@@ -5,7 +5,7 @@ import { playwright } from '@vitest/browser-playwright';
 export default defineConfig(({ mode }) => {
     if (mode === 'development') {
         const csp =
-            "default-src 'self'; script-src 'self'; script-src-elem 'self' https://smartcaptcha.cloud.yandex.ru 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://localhost:* ws://localhost:* data:; font-src 'self'; object-src 'none'; media-src 'none'; frame-src 'self' https://smartcaptcha.cloud.yandex.ru; child-src 'none'; form-action 'none'; worker-src 'self'; manifest-src 'self'; frame-ancestors http: https: file:";
+            "default-src 'self'; script-src 'self'; script-src-elem 'self' https://smartcaptcha.cloud.yandex.ru; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://localhost:* ws://localhost:* data:; font-src 'self'; object-src 'none'; media-src 'none'; frame-src 'self' https://smartcaptcha.cloud.yandex.ru; child-src 'none'; form-action 'none'; worker-src 'self'; manifest-src 'self'; frame-ancestors http: https: file:";
 
         return {
             plugins: [svelte()],
