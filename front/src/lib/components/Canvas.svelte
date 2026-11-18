@@ -24,6 +24,7 @@
     import { canvasManager } from '../services/CanvasManager';
     import { exporterManager } from '../services/ExporterManager';
     import { autoSaveService } from '../services/AutoSaveService';
+    import { tutorialService } from '../services/TutorialService';
 
     import hasPermission from '../services/hasPermission';
     import logger from '../services/logger';
@@ -146,6 +147,7 @@
         return () => {
             // Отменяем подписку до очистки canvas, чтобы не обращаться к устаревшему экземпляру
             unsubscribeTheme();
+            tutorialService.stop();
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
             window.removeEventListener('blur', handleWindowBlur);
@@ -159,6 +161,7 @@
     $effect(() => {
         if (diagramInfo && canvas) {
             canvasManager.setDiagramInfo(diagramInfo as DiagramInfo);
+            if (hasPermission(diagramInfo.permission)) tutorialService.maybeStart();
         }
     });
 

@@ -7,6 +7,7 @@
         faCloud,
         faCrosshairs,
         faExpand,
+        faGraduationCap,
         faQuestionCircle,
     } from '@fortawesome/free-solid-svg-icons';
 
@@ -17,6 +18,8 @@
     import PermissionBadge from './PermissionBadge.svelte';
 
     import { viewportManager } from '../services/ViewportManager';
+    import { tutorialService } from '../services/TutorialService';
+    import hasPermission from '../services/hasPermission';
 
     let showHelp = $state(false);
 
@@ -64,6 +67,16 @@
         >
             <Fa icon={faQuestionCircle} />
         </button>
+        {#if hasPermission($diagramPermission)}
+            <button
+                class="btn btn-sm btn-outline-secondary ms-2"
+                type="button"
+                onclick={() => tutorialService.start()}
+                title="Пройти обучение"
+            >
+                <Fa icon={faGraduationCap} />
+            </button>
+        {/if}
     </div>
     {#if $diagramTitle}
         <div class="statusbar-item">|</div>
