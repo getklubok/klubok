@@ -1960,6 +1960,223 @@ func decodeEmbedGetParams(args [2]string, argsEscaped bool, r *http.Request) (pa
 	return params, nil
 }
 
+// EmbedImageGetParams is parameters of EmbedImageGet operation.
+type EmbedImageGetParams struct {
+	// Embed token.
+	Token string
+	// Image ID.
+	ImageId Ulid
+	// Image variant. Preview is not served by this route.
+	Variant ImageVariantEnum
+}
+
+func unpackEmbedImageGetParams(packed middleware.Parameters) (params EmbedImageGetParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "token",
+			In:   "path",
+		}
+		params.Token = packed[key].(string)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "imageId",
+			In:   "path",
+		}
+		params.ImageId = packed[key].(Ulid)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "variant",
+			In:   "path",
+		}
+		params.Variant = packed[key].(ImageVariantEnum)
+	}
+	return params
+}
+
+func decodeEmbedImageGetParams(args [3]string, argsEscaped bool, r *http.Request) (params EmbedImageGetParams, _ error) {
+	// Decode path: token.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "token",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.Token = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     64,
+					MinLengthSet:  true,
+					MaxLength:     64,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(params.Token)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "token",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: imageId.
+	if err := func() error {
+		param := args[1]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "imageId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				var paramsDotImageIdVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotImageIdVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.ImageId = Ulid(paramsDotImageIdVal)
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := params.ImageId.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "imageId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: variant.
+	if err := func() error {
+		param := args[2]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[2])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "variant",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.Variant = ImageVariantEnum(c)
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := params.Variant.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "variant",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // EmbedListParams is parameters of EmbedList operation.
 type EmbedListParams struct {
 	// Diagram ID.
@@ -1978,6 +2195,299 @@ func unpackEmbedListParams(packed middleware.Parameters) (params EmbedListParams
 }
 
 func decodeEmbedListParams(args [1]string, argsEscaped bool, r *http.Request) (params EmbedListParams, _ error) {
+	// Decode path: diagramId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "diagramId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				var paramsDotDiagramIdVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotDiagramIdVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.DiagramId = Ulid(paramsDotDiagramIdVal)
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := params.DiagramId.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "diagramId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// ImageGetParams is parameters of ImageGet operation.
+type ImageGetParams struct {
+	// Diagram ID.
+	DiagramId Ulid
+	// Image ID.
+	ImageId Ulid
+	// Image variant. Preview is not served by this route.
+	Variant ImageVariantEnum
+}
+
+func unpackImageGetParams(packed middleware.Parameters) (params ImageGetParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "diagramId",
+			In:   "path",
+		}
+		params.DiagramId = packed[key].(Ulid)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "imageId",
+			In:   "path",
+		}
+		params.ImageId = packed[key].(Ulid)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "variant",
+			In:   "path",
+		}
+		params.Variant = packed[key].(ImageVariantEnum)
+	}
+	return params
+}
+
+func decodeImageGetParams(args [3]string, argsEscaped bool, r *http.Request) (params ImageGetParams, _ error) {
+	// Decode path: diagramId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "diagramId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				var paramsDotDiagramIdVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotDiagramIdVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.DiagramId = Ulid(paramsDotDiagramIdVal)
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := params.DiagramId.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "diagramId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: imageId.
+	if err := func() error {
+		param := args[1]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "imageId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				var paramsDotImageIdVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotImageIdVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.ImageId = Ulid(paramsDotImageIdVal)
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := params.ImageId.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "imageId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: variant.
+	if err := func() error {
+		param := args[2]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[2])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "variant",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.Variant = ImageVariantEnum(c)
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := params.Variant.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "variant",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// ImageUploadParams is parameters of ImageUpload operation.
+type ImageUploadParams struct {
+	// Diagram ID.
+	DiagramId Ulid
+}
+
+func unpackImageUploadParams(packed middleware.Parameters) (params ImageUploadParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "diagramId",
+			In:   "path",
+		}
+		params.DiagramId = packed[key].(Ulid)
+	}
+	return params
+}
+
+func decodeImageUploadParams(args [1]string, argsEscaped bool, r *http.Request) (params ImageUploadParams, _ error) {
 	// Decode path: diagramId.
 	if err := func() error {
 		param := args[0]

@@ -12,6 +12,7 @@ packages:
   klubok/internal/application/middleware/auth:
   klubok/internal/application/service/diagram:
   klubok/internal/application/service/embed:
+  klubok/internal/application/service/image:
   klubok/internal/application/service/mailer:
   klubok/internal/application/service/permission:
   klubok/internal/application/service/session:

@@ -42,7 +42,11 @@ COPY --from=back --chown=appuser:appgroup /app/goose /usr/local/bin/goose
 COPY --from=front --chown=appuser:appgroup /app/dist /app/static
 COPY --chown=appuser:appgroup back/migrations ./migrations
 
-RUN chmod +x /usr/local/bin/goose /app/klubok
+# Каталог локального хранилища (STORAGE_LOCAL_PATH=/storage) создаётся от пользователя
+# приложения, чтобы именованный volume получил те же права.
+RUN chmod +x /usr/local/bin/goose /app/klubok \
+    && mkdir -p /storage \
+    && chown appuser:appgroup /storage
 
 USER appuser
 

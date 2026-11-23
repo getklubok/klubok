@@ -73,6 +73,16 @@ type DiagramShape struct {
 	UpdatedAt time.Time           `db:"updated_at"`
 }
 
+type Image struct {
+	ID           string    `db:"id"`
+	DiagramID    string    `db:"diagram_id"`
+	BlobHash     string    `db:"blob_hash"`
+	Preview      []byte    `db:"preview"`
+	OriginalName string    `db:"original_name"`
+	Mime         string    `db:"mime"`
+	CreatedAt    time.Time `db:"created_at"`
+}
+
 type PrivacyLog struct {
 	ID             int64     `db:"id"`
 	UserID         string    `db:"user_id"`

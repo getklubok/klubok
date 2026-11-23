@@ -11,6 +11,11 @@ RETURNING *;
 INSERT INTO diagram_shapes (id, diagram_id, data, created_at, updated_at)
 VALUES ($1, $2, $3, $4, $5);
 
+-- name: DiagramShapeGet :one
+SELECT * FROM diagram_shapes
+WHERE id = $1
+AND diagram_id = $2;
+
 -- name: DiagramShapeDelete :exec
 DELETE FROM diagram_shapes
 WHERE id = $1

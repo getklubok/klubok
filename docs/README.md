@@ -28,7 +28,7 @@ home: ../
 ## Документация
 
 - **Начало работы**: [Установка](1-get-started/1-install.md)
-- **Администрирование**: [Обновление](2-administration/1-update.md), [Фича-флаги](2-administration/2-feature-flags.md), [Метрики](2-administration/3-metrics.md), [Политика обработки персональных данных](2-administration/4-privacy-policy.md)
+- **Администрирование**: [Обновление](2-administration/1-update.md), [Фича-флаги](2-administration/2-feature-flags.md), [Метрики](2-administration/3-metrics.md), [Хранилище изображений](2-administration/5-storage.md), [Политика обработки персональных данных](2-administration/4-privacy-policy.md)
 - **Прокси**: [Nginx](3-proxy/1-nginx.md)
 - **База данных**: [PostgreSQL](4-database/1-postgresql.md)
 - **Разработка**: [Локальный запуск](5-development/1-setup.md), [Релиз](5-development/2-release.md), [Версии инструментов](5-development/3-toolchain.md)

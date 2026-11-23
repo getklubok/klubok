@@ -8,6 +8,7 @@ import {
     Triangle as FabricTriangle,
     Polyline as FabricPolyline,
     FabricObject,
+    FabricImage,
     FabricText,
     IText as FabricIText,
     util as fabricUtil,
@@ -17,7 +18,7 @@ import { get } from 'svelte/store';
 
 import avatarColor from './avatarColor';
 
-import type { CursorData, IEllipseElement, ShapeElement } from '../stores';
+import type { CursorData, IEllipseElement, IImageElement, ShapeElement } from '../stores';
 import { resolvedThemeStore } from '../stores/theme';
 
 import {
@@ -356,6 +357,19 @@ class FabricManager {
                 break;
             }
 
+            case 'image': {
+                shape = new FabricRect({
+                    width: element.width,
+                    height: element.height,
+                    fill: 'transparent',
+                    stroke: 'transparent',
+                    strokeWidth: element.strokeWidth,
+                    originX: 'center',
+                    originY: 'center',
+                });
+                break;
+            }
+
             default:
                 throw new Error(`Неизвестный тип элемента: ${(element as ShapeElement).type}`);
         }
@@ -369,6 +383,9 @@ class FabricManager {
             originX: 'center',
             originY: 'center',
         });
+
+        // Текст у Image-шейпа обязателен по контракту API, но не отображается.
+        if (element.type === 'image') text.set({ visible: false });
 
         const isBox = element.type === 'box';
 
@@ -442,7 +459,43 @@ class FabricManager {
         // до следующего recolorAll (сломано при старте и при добавлении объекта).
         this.applySelectionControlsTheme(group, isDark);
 
+        if (element.type === 'image') {
+            this.loadImagePreview(group, element as IImageElement, shape);
+        }
+
         return group;
+    }
+
+    /**
+     * Подставляет preview в Image-шейп по принципу contain: изображение целиком
+     * помещается в фигуру, центрируется и не обрезается. Без pv остаётся placeholder.
+     * Размер берём у рамки: её могли изменить, пока preview загружался.
+     */
+    private loadImagePreview(group: FabricGroup, element: IImageElement, frame: FabricObject): void {
+        if (!element.pv) return;
+
+        FabricImage.fromURL(element.pv)
+            .then((image) => {
+                const scale = Math.min(frame.width / image.width, frame.height / image.height);
+                // add() пересчитывает координаты из плоскости канваса в плоскость группы,
+                // поэтому ставим preview в центр группы — внутри он окажется в (0, 0).
+                const center = group.getCenterPoint();
+                image.set({
+                    left: center.x,
+                    top: center.y,
+                    originX: 'center',
+                    originY: 'center',
+                    scaleX: scale,
+                    scaleY: scale,
+                    selectable: false,
+                    evented: false,
+                });
+                group.add(image);
+                group.canvas?.requestRenderAll();
+            })
+            .catch(() => {
+                // Placeholder остаётся: preview не загрузился.
+            });
     }
 
     public createConnection(fromElement: FabricGroup, toElement: FabricGroup): FabricGroup {

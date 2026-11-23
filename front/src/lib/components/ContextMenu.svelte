@@ -10,6 +10,8 @@
         faEdit,
         faComment,
         faClone,
+        faExpand,
+        faDownload,
     } from '@fortawesome/free-solid-svg-icons';
 
     import { Group as FabricGroup } from 'fabric/es';
@@ -20,6 +22,8 @@
     import hasPermission from '../services/hasPermission';
 
     import type { DiagramCollaboratorPermissionEnum } from '../ApiSpec';
+    import { getImageUrl } from '../Api';
+    import { imageViewerUrl, shapes } from '../stores';
 
     interface MenuItem {
         label?: string;
@@ -34,10 +38,33 @@
         y: number;
         target: FabricGroup;
         permission: DiagramCollaboratorPermissionEnum | null | undefined;
+        diagramId: string;
         onClose: () => void;
     }
-    const { x, y, target, permission, onClose }: Props = $props();
 
+    // Пункты слоёв: один обработчик на направление перемещения.
+    function layerItems(group: FabricGroup, close: () => void): MenuItem[] {
+        const moves: { label: string; icon: IconDefinition; direction: 'back' | 'down' | 'up' | 'front' }[] = [
+            { label: 'На задний план', icon: faArrowsDownToLine, direction: 'back' },
+            { label: 'Переместить назад', icon: faArrowDown, direction: 'down' },
+            { label: 'Переместить вперёд', icon: faArrowUp, direction: 'up' },
+            { label: 'На передний план', icon: faArrowsUpToLine, direction: 'front' },
+        ];
+
+        return moves.map(({ label, icon, direction }) => ({
+            label,
+            icon,
+            action: () => {
+                if (!group.name) return;
+                canvasManager.moveObject(group.name, direction);
+                close();
+            },
+        }));
+    }
+    const { x, y, target, permission, diagramId, onClose }: Props = $props();
+
+    const selectedShape = $derived($shapes.find((s) => s.id === target.name));
+    const imageId = $derived(selectedShape && 'img' in selectedShape ? selectedShape.img : '');
     const menuItems = $derived.by<MenuItem[]>(() => {
         const items: MenuItem[] = [
             {
@@ -50,75 +77,76 @@
             },
         ];
 
-        if (hasPermission(permission)) {
+        if (imageId) {
+            const fullUrl = getImageUrl(diagramId, imageId, 'full');
+            const downloadUrl = getImageUrl(diagramId, imageId, 'download');
+
             items.push(
                 {
                     separator: true,
                 },
                 {
-                    label: 'Редактировать текст',
-                    icon: faEdit,
+                    label: 'На весь экран',
+                    icon: faExpand,
                     action: () => {
-                        groupActionManager.startEditing(target);
+                        imageViewerUrl.set(fullUrl);
                         onClose();
                     },
                 },
                 {
-                    label: 'Клонировать',
-                    icon: faClone,
+                    label: 'Скачать оригинал',
+                    icon: faDownload,
                     action: () => {
-                        groupActionManager.cloneObject(target);
+                        const link = document.createElement('a');
+                        link.href = downloadUrl;
+                        link.click();
                         onClose();
                     },
                 },
-                {
-                    label: 'Удалить',
-                    icon: faTrash,
-                    variant: 'danger',
-                    action: () => {
-                        groupActionManager.deleteObject(target);
-                        onClose();
+            );
+        }
+
+        if (hasPermission(permission)) {
+            items.push({
+                separator: true,
+            });
+
+            // У Image-шейпа нет текста для правки и он не клонируется.
+            if (!imageId) {
+                items.push(
+                    {
+                        label: 'Редактировать текст',
+                        icon: faEdit,
+                        action: () => {
+                            groupActionManager.startEditing(target);
+                            onClose();
+                        },
                     },
+                    {
+                        label: 'Клонировать',
+                        icon: faClone,
+                        action: () => {
+                            groupActionManager.cloneObject(target);
+                            onClose();
+                        },
+                    },
+                );
+            }
+
+            items.push({
+                label: 'Удалить',
+                icon: faTrash,
+                variant: 'danger',
+                action: () => {
+                    groupActionManager.deleteObject(target);
+                    onClose();
                 },
+            });
+            items.push(
                 {
                     separator: true,
                 },
-                {
-                    label: 'На задний план',
-                    icon: faArrowsDownToLine,
-                    action: () => {
-                        if (!target.name) return;
-                        canvasManager.moveObject(target.name, 'back');
-                        onClose();
-                    },
-                },
-                {
-                    label: 'Переместить назад',
-                    icon: faArrowDown,
-                    action: () => {
-                        if (!target.name) return;
-                        canvasManager.moveObject(target.name, 'down');
-                        onClose();
-                    },
-                },
-                {
-                    label: 'Переместить вперёд',
-                    icon: faArrowUp,
-                    action: () => {
-                        if (!target.name) return;
-                        canvasManager.moveObject(target.name, 'up');
-                        onClose();
-                    },
-                },
-                {
-                    label: 'На передний план',
-                    icon: faArrowsUpToLine,
-                    action: () => {
-                        if (!target.name) return;
-                        canvasManager.moveObject(target.name, 'front');
-                        onClose();
-                    },
-                },
+                ...layerItems(target, onClose),
             );
         }
 

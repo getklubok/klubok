@@ -18,9 +18,9 @@ const (
 // CSP перенесены из deploy/nginx.conf; из connect-src убран явный домен
 // развёртывания — 'self' покрывает http/https/ws/wss того же origin.
 const (
-	embedContentSecurityPolicy = "default-src 'self'; script-src 'self'; script-src-elem 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' data:; font-src 'self'; object-src 'none'; media-src 'none'; frame-src 'self'; child-src 'none'; form-action 'none'; worker-src 'self'; manifest-src 'self'; frame-ancestors http: https: file:"
+	embedContentSecurityPolicy = "default-src 'self'; script-src 'self'; script-src-elem 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: http://localhost:*; connect-src 'self' data:; font-src 'self'; object-src 'none'; media-src 'none'; frame-src 'self'; child-src 'none'; form-action 'none'; worker-src 'self'; manifest-src 'self'; frame-ancestors http: https: file:"
 
-	defaultContentSecurityPolicy = "default-src 'self'; script-src 'self'; script-src-elem 'self' https://smartcaptcha.cloud.yandex.ru; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' data:; font-src 'self'; object-src 'none'; media-src 'none'; frame-src 'self' https://smartcaptcha.cloud.yandex.ru; child-src 'none'; form-action 'none'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'"
+	defaultContentSecurityPolicy = "default-src 'self'; script-src 'self'; script-src-elem 'self' https://smartcaptcha.cloud.yandex.ru; style-src 'self' 'unsafe-inline'; img-src 'self' data: http://localhost:*; connect-src 'self' data:; font-src 'self'; object-src 'none'; media-src 'none'; frame-src 'self' https://smartcaptcha.cloud.yandex.ru; child-src 'none'; form-action 'none'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'"
 )
 
 const (

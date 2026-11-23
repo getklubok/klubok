@@ -80,6 +80,13 @@ func (h *Shape) ShapeUpsert(
 		return &oas.ShapeUpsertInternalServerError{}, nil
 	}
 
+	if err := validateShape(shape); err != nil {
+		log.Warn("Invalid shape",
+			zap.Error(err),
+		)
+		return &oas.ShapeUpsertBadRequest{}, nil
+	}
+
 	err = h.diagramService.ShapeUpsert(ctx, claims.UserID, diagramID, shape)
 	if err != nil {
 		log.Error("Upsert shape diagram",
@@ -134,7 +141,18 @@ func (h *Shape) ShapeBatchUpsert(
 		req.Shapes[i].Txt = h.sanitizer.Sanitize(req.Shapes[i].Txt)
 	}
 
-	err = h.diagramService.ShapeBatchUpsert(ctx, claims.UserID, diagramID, diagramShapesToDomain(req.Shapes))
+	shapes := diagramShapesToDomain(req.Shapes)
+
+	for _, shape := range shapes {
+		if err := validateShape(shape); err != nil {
+			log.Warn("Invalid shape",
+				zap.Error(err),
+			)
+			return &oas.ShapeBatchUpsertBadRequest{}, nil
+		}
+	}
+
+	err = h.diagramService.ShapeBatchUpsert(ctx, claims.UserID, diagramID, shapes)
 	if err != nil {
 		log.Error("Batch upsert shapes diagram",
 			zap.Error(err),

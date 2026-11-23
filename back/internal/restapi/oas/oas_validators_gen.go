@@ -1148,6 +1148,8 @@ func (s DiagramShapeTypeEnum) Validate() error {
 		return nil
 	case "T":
 		return nil
+	case "I":
+		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
@@ -1340,6 +1342,40 @@ func (s *EmbedListResponse) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s *ImageUploadResponse) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.ID.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "id",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ImageVariantEnum) Validate() error {
+	switch s {
+	case "full":
+		return nil
+	case "download":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *OnlineUser) Validate() error {

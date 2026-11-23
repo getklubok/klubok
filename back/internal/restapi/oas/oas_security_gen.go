@@ -55,6 +55,8 @@ var operationRolesSessionCookie = map[string][]string{
 	EmbedDeleteOperation:           []string{},
 	EmbedGetOperation:              []string{},
 	EmbedListOperation:             []string{},
+	ImageGetOperation:              []string{},
+	ImageUploadOperation:           []string{},
 	ShapeBatchUpsertOperation:      []string{},
 	ShapeDeleteOperation:           []string{},
 	ShapeUpsertOperation:           []string{},

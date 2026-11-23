@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { ShapeElement, IEllipseElement, CursorData } from '../stores';
+import type { ShapeElement, IEllipseElement, IImageElement, CursorData } from '../stores';
 import type { OnlineUser } from '../ApiSpec';
 
 // Мокаем fabric/es модуль
@@ -9,6 +9,8 @@ const mockCalcTransformMatrix = vi.fn();
 const mockItem = vi.fn();
 const mockSet = vi.fn();
 const mockGetBoundingRect = vi.fn();
+const mockGroupAdd = vi.fn();
+const mockImageFromURL = vi.fn();
 // Общий mock для set() у классов-фигур — реально обновляет свойство,
 // чтобы конвертацию цветов можно было проверить по obj.fill/obj.stroke.
 const mockShapeSet = vi.fn(function (
@@ -46,7 +48,9 @@ vi.mock('fabric/es', () => {
         selectable: boolean;
         evented: boolean;
         dirty: boolean;
+        createdObjects: unknown[];
         constructor(_objects: unknown[], options: Record<string, unknown> = {}) {
+            this.createdObjects = _objects;
             this.name = (options.name as string) || '';
             this.left = (options.left as number) || 0;
             this.top = (options.top as number) || 0;
@@ -58,6 +62,8 @@ vi.mock('fabric/es', () => {
             this.evented = (options.evented as boolean) ?? true;
             this.dirty = true;
         }
+        add = mockGroupAdd;
+        canvas: { requestRenderAll: () => void } | undefined = undefined;
         getCenterPoint = mockGetCenterPoint;
         getObjects = mockGetObjects;
         calcTransformMatrix = mockCalcTransformMatrix;
@@ -239,6 +245,35 @@ vi.mock('fabric/es', () => {
             this.set = mockShapeSet;
         }
     }
+    class FabricImage {
+        width: number;
+        height: number;
+        left: number;
+        top: number;
+        scaleX: number;
+        scaleY: number;
+        originX: string;
+        originY: string;
+        selectable: boolean;
+        evented: boolean;
+        constructor(options: Record<string, unknown> = {}) {
+            this.width = (options.width as number) || 0;
+            this.height = (options.height as number) || 0;
+            this.left = (options.left as number) || 0;
+            this.top = (options.top as number) || 0;
+            this.scaleX = (options.scaleX as number) || 1;
+            this.scaleY = (options.scaleY as number) || 1;
+            this.originX = (options.originX as string) || '';
+            this.originY = (options.originY as string) || '';
+            this.selectable = (options.selectable as boolean) ?? true;
+            this.evented = (options.evented as boolean) ?? true;
+        }
+        static fromURL(...args: unknown[]) {
+            return mockImageFromURL(...args);
+        }
+        type = 'image';
+        set = mockShapeSet;
+    }
 
     class FabricIText extends FabricText {
         constructor(text: string, options: Record<string, unknown>) {
@@ -257,6 +292,7 @@ vi.mock('fabric/es', () => {
         Ellipse: FabricEllipse,
         Circle: FabricCircle,
         Rect: FabricRect,
+        FabricImage,
         Polygon: FabricPolygon,
         Triangle: FabricTriangle,
         Polyline: FabricPolyline,
@@ -333,6 +369,10 @@ function makeCursorData(overrides: Partial<CursorData> = {}): CursorData {
         y: 250,
         ...overrides,
     };
+}
+
+function makeImageMock(width: number, height: number) {
+    return { width, height, left: 0, top: 0, scaleX: 1, scaleY: 1, set: mockShapeSet };
 }
 
 function makeRectMock() {
@@ -424,6 +464,102 @@ describe('FabricManager', () => {
             expect(group.left).toBe(100);
             expect(group.top).toBe(100);
             expect(group.name).toBe('shape-1');
+        });
+
+        it('должен создавать image без pv как placeholder без изображения', () => {
+            const element = makeShapeElement({ type: 'image', img: '01IMAGE' }) as IImageElement;
+
+            const group = fabricManager.createShape(element);
+
+            expect(group).toBeInstanceOf(FabricGroup);
+            expect(mockImageFromURL).not.toHaveBeenCalled();
+            expect(mockGroupAdd).not.toHaveBeenCalled();
+        });
+
+        it('должен рисовать preview по принципу contain и центрировать его', async () => {
+            mockGetCenterPoint.mockReturnValue(new FabricPoint(250, 150));
+            mockImageFromURL.mockResolvedValue(makeImageMock(1600, 900));
+            const element = makeShapeElement({
+                type: 'image',
+                width: 320,
+                height: 320,
+                img: '01IMAGE',
+                pv: 'data:image/jpeg;base64,AAAA',
+            }) as IImageElement;
+
+            fabricManager.createShape(element);
+            await Promise.resolve();
+
+            expect(mockImageFromURL).toHaveBeenCalledWith(element.pv);
+            const image = mockGroupAdd.mock.calls[0][0] as {
+                scaleX: number;
+                scaleY: number;
+                left: number;
+                top: number;
+            };
+            // 16:9 вписывается по ширине: 320/1600 = 0.2, высота 900*0.2 = 180 < 320.
+            expect(image.scaleX).toBeCloseTo(0.2);
+            expect(image.scaleY).toBeCloseTo(0.2);
+            // add() сам пересчитает канвасные координаты в локальные, поэтому preview
+            // передаётся в центр группы, а не в (0, 0).
+            expect(image.left).toBe(250);
+            expect(image.top).toBe(150);
+        });
+
+        it('должен вписывать высокое preview по высоте', async () => {
+            mockImageFromURL.mockResolvedValue(makeImageMock(500, 1000));
+            const element = makeShapeElement({
+                type: 'image',
+                width: 320,
+                height: 320,
+                img: '01IMAGE',
+                pv: 'data:image/jpeg;base64,AAAA',
+            }) as IImageElement;
+
+            fabricManager.createShape(element);
+            await Promise.resolve();
+
+            const image = mockGroupAdd.mock.calls[0][0] as { scaleX: number; scaleY: number };
+            expect(image.scaleX).toBeCloseTo(0.32);
+            expect(image.scaleY).toBeCloseTo(0.32);
+        });
+
+        it('должен оставлять placeholder при ошибке загрузки preview', async () => {
+            mockImageFromURL.mockRejectedValue(new Error('network'));
+            const element = makeShapeElement({
+                type: 'image',
+                img: '01IMAGE',
+                pv: 'data:image/jpeg;base64,AAAA',
+            }) as IImageElement;
+
+            fabricManager.createShape(element);
+            await Promise.resolve();
+            await Promise.resolve();
+
+            expect(mockGroupAdd).not.toHaveBeenCalled();
+        });
+
+        it('должен делать рамку image прозрачной', () => {
+            const element = makeShapeElement({
+                type: 'image',
+                img: '01IMAGE',
+                fill: '#ffffff',
+                stroke: '#c0392b',
+            }) as IImageElement;
+
+            const group = fabricManager.createShape(element);
+            const frame = (group as unknown as { createdObjects: Array<{ fill: string; stroke: string }> })
+                .createdObjects[0];
+
+            expect(frame).toMatchObject({ fill: 'transparent', stroke: 'transparent' });
+        });
+
+        it('должен скрывать текст у image-шейпа', () => {
+            const element = makeShapeElement({ type: 'image', img: '01IMAGE' }) as IImageElement;
+
+            fabricManager.createShape(element);
+
+            expect(mockShapeSet).toHaveBeenCalledWith({ visible: false });
         });
 
         it('должен выбрасывать ошибку для неизвестного типа элемента', () => {

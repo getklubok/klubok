@@ -27,3 +27,8 @@ export const SELECTION_CORNER_STROKE_LIGHT: string = '#fff';
 export const SELECTION_CORNER_STROKE_DARK: string = '#333';
 export const SELECTION_BORDER_LIGHT: string = '#fff';
 export const SELECTION_BORDER_DARK: string = '#333';
+
+// Image-шейп: текст обязателен по контракту API, но не отображается.
+export const IMAGE_TEXT = 'i';
+// Длинная сторона нового Image-шейпа в пикселях.
+export const IMAGE_INSERT_SIZE = 320;

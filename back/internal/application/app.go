@@ -19,6 +19,7 @@ import (
 	"klubok/internal/application/service/cookie"
 	"klubok/internal/application/service/diagram"
 	"klubok/internal/application/service/embed"
+	"klubok/internal/application/service/image"
 	"klubok/internal/application/service/mailer"
 	"klubok/internal/application/service/permission"
 	"klubok/internal/application/service/session"
@@ -29,6 +30,7 @@ import (
 	"klubok/internal/db/sqlc"
 	"klubok/internal/domain"
 	"klubok/internal/provider/sso"
+	"klubok/internal/provider/storage"
 	"klubok/internal/provider/yandex"
 	"klubok/internal/restapi/handler"
 	"klubok/internal/restapi/oas"
@@ -66,6 +68,34 @@ func Run() error { //nolint:gocognit,gocyclo,cyclop,maintidx // It's ok
 
 	queries := sqlc.New(dbpool)
 	dbUseCase := db.NewUseCase(dbpool, queries)
+
+	imageStorage, err := storage.New(ctx, storage.Config{
+		Provider: cfg.Storage.Provider,
+		Local: storage.Local{
+			Path: cfg.Storage.Local.Path,
+		},
+		S3: storage.S3{
+			Endpoint:       cfg.Storage.S3.Endpoint,
+			Region:         cfg.Storage.S3.Region,
+			Bucket:         cfg.Storage.S3.Bucket,
+			AccessKey:      cfg.Storage.S3.AccessKey,
+			SecretKey:      cfg.Storage.S3.SecretKey,
+			ForcePathStyle: cfg.Storage.S3.ForcePathStyle,
+			Prefix:         cfg.Storage.S3.Prefix,
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("new storage: %w", err)
+	}
+
+	imageService := image.NewService(queries, imageStorage, image.Config{
+		MaxFileSizeBytes:    cfg.Images.MaxFileSizeBytes,
+		MaxPixels:           cfg.Images.MaxPixels,
+		PreviewMaxSidePx:    cfg.Images.PreviewMaxSidePx,
+		FullscreenMaxSidePx: cfg.Images.FullscreenMaxSidePx,
+	}, log)
+	imageService.Start(ctx)
+	defer imageService.Stop()
 
 	var emailCh chan mailer.EmailTask
 	if cfg.Feature.Auth.Email.Enabled {
@@ -173,12 +203,13 @@ func Run() error { //nolint:gocognit,gocyclo,cyclop,maintidx // It's ok
 		cfg.Feature.Auth.SSO.Enabled,
 	)
 
-	diagramService := diagram.NewService(queries, dbUseCase, wsManager, log)
+	diagramService := diagram.NewService(queries, dbUseCase, wsManager, imageService, log)
 	diagramHandler := handler.NewDiagram(diagramService, permissionService, wsManager, sanitizer, log)
 
 	embedService := embed.NewService(queries, log)
 	embedHandler := handler.NewEmbed(embedService, permissionService, log)
 	embedPublicHandler := handler.NewEmbedPublic(diagramService, embedService, log)
+	imageHandler := handler.NewImage(diagramService, imageService, permissionService, embedService, log)
 
 	shapeHandler := handler.NewShape(diagramService, permissionService, sanitizer, log)
 	connectionHandler := handler.NewConnection(diagramService, permissionService, log)
@@ -241,6 +272,7 @@ func Run() error { //nolint:gocognit,gocyclo,cyclop,maintidx // It's ok
 		ssoHandler,
 		embedHandler,
 		embedPublicHandler,
+		imageHandler,
 	)
 
 	environment := domain.EnvironmentFromString(cfg.Environment)

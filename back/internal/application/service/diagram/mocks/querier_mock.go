@@ -1057,6 +1057,124 @@ func (_c *QuerierMock_DiagramShapeUpsert_Call) RunAndReturn(run func(context.Con
 	return _c
 }
 
+// ImageListByDiagram provides a mock function with given fields: ctx, diagramID
+func (_m *QuerierMock) ImageListByDiagram(ctx context.Context, diagramID string) ([]sqlc.Image, error) {
+	ret := _m.Called(ctx, diagramID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ImageListByDiagram")
+	}
+
+	var r0 []sqlc.Image
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]sqlc.Image, error)); ok {
+		return rf(ctx, diagramID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []sqlc.Image); ok {
+		r0 = rf(ctx, diagramID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]sqlc.Image)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, diagramID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// QuerierMock_ImageListByDiagram_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ImageListByDiagram'
+type QuerierMock_ImageListByDiagram_Call struct {
+	*mock.Call
+}
+
+// ImageListByDiagram is a helper method to define mock.On call
+//   - ctx context.Context
+//   - diagramID string
+func (_e *QuerierMock_Expecter) ImageListByDiagram(ctx interface{}, diagramID interface{}) *QuerierMock_ImageListByDiagram_Call {
+	return &QuerierMock_ImageListByDiagram_Call{Call: _e.mock.On("ImageListByDiagram", ctx, diagramID)}
+}
+
+func (_c *QuerierMock_ImageListByDiagram_Call) Run(run func(ctx context.Context, diagramID string)) *QuerierMock_ImageListByDiagram_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *QuerierMock_ImageListByDiagram_Call) Return(_a0 []sqlc.Image, _a1 error) *QuerierMock_ImageListByDiagram_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *QuerierMock_ImageListByDiagram_Call) RunAndReturn(run func(context.Context, string) ([]sqlc.Image, error)) *QuerierMock_ImageListByDiagram_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ImagePreviewListByDiagram provides a mock function with given fields: ctx, diagramID
+func (_m *QuerierMock) ImagePreviewListByDiagram(ctx context.Context, diagramID string) ([]sqlc.ImagePreviewListByDiagramRow, error) {
+	ret := _m.Called(ctx, diagramID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ImagePreviewListByDiagram")
+	}
+
+	var r0 []sqlc.ImagePreviewListByDiagramRow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]sqlc.ImagePreviewListByDiagramRow, error)); ok {
+		return rf(ctx, diagramID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []sqlc.ImagePreviewListByDiagramRow); ok {
+		r0 = rf(ctx, diagramID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]sqlc.ImagePreviewListByDiagramRow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, diagramID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// QuerierMock_ImagePreviewListByDiagram_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ImagePreviewListByDiagram'
+type QuerierMock_ImagePreviewListByDiagram_Call struct {
+	*mock.Call
+}
+
+// ImagePreviewListByDiagram is a helper method to define mock.On call
+//   - ctx context.Context
+//   - diagramID string
+func (_e *QuerierMock_Expecter) ImagePreviewListByDiagram(ctx interface{}, diagramID interface{}) *QuerierMock_ImagePreviewListByDiagram_Call {
+	return &QuerierMock_ImagePreviewListByDiagram_Call{Call: _e.mock.On("ImagePreviewListByDiagram", ctx, diagramID)}
+}
+
+func (_c *QuerierMock_ImagePreviewListByDiagram_Call) Run(run func(ctx context.Context, diagramID string)) *QuerierMock_ImagePreviewListByDiagram_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *QuerierMock_ImagePreviewListByDiagram_Call) Return(_a0 []sqlc.ImagePreviewListByDiagramRow, _a1 error) *QuerierMock_ImagePreviewListByDiagram_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *QuerierMock_ImagePreviewListByDiagram_Call) RunAndReturn(run func(context.Context, string) ([]sqlc.ImagePreviewListByDiagramRow, error)) *QuerierMock_ImagePreviewListByDiagram_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NewQuerierMock creates a new instance of QuerierMock. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewQuerierMock(t interface {

@@ -157,6 +157,65 @@ describe('mapShapeToApi', () => {
             o: '',
         });
     });
+    it('должен маппить image в I и отправлять только img', () => {
+        const shape: ShapeElement = {
+            id: '06IMG',
+            type: 'image',
+            left: 10,
+            top: 20,
+            width: 320,
+            height: 180,
+            fill: '#ffffff',
+            stroke: '#c0392b',
+            strokeWidth: 1,
+            scaleX: 1,
+            scaleY: 1,
+            text: 'i',
+            order: '',
+            img: '01IMAGE',
+            pv: 'data:image/jpeg;base64,AAAA',
+        };
+
+        const result = mapShapeToApi(shape);
+        expect(result).toEqual({
+            id: '06IMG',
+            tp: 'I',
+            l: 10,
+            t: 20,
+            w: 320,
+            h: 180,
+            sx: 1,
+            sy: 1,
+            fc: '#ffffff',
+            sc: '#c0392b',
+            txt: 'i',
+            ta: 'center',
+            o: '',
+            img: '01IMAGE',
+        });
+        expect(result.pv).toBeUndefined();
+    });
+
+    it('должен подставлять непустой текст для image даже при пустом text', () => {
+        const shape: ShapeElement = {
+            id: '06IMG',
+            type: 'image',
+            left: 0,
+            top: 0,
+            width: 320,
+            height: 180,
+            fill: '#ffffff',
+            stroke: '#c0392b',
+            strokeWidth: 1,
+            scaleX: 1,
+            scaleY: 1,
+            text: '',
+            order: '',
+            img: '01IMAGE',
+        };
+
+        expect(mapShapeToApi(shape).txt).toBe('i');
+    });
 
     it('должен выбрасывать ошибку для неизвестного типа', () => {
         const shape = {
@@ -324,6 +383,65 @@ describe('mapShapeFromApi', () => {
             order: '',
         });
     });
+    it('должен маппить I в image с img и pv', () => {
+        const shape: DiagramShape = {
+            id: '06IMG',
+            tp: 'I',
+            l: 10,
+            t: 20,
+            w: 320,
+            h: 180,
+            sx: 1,
+            sy: 1,
+            fc: '#ffffff',
+            sc: '#c0392b',
+            txt: 'i',
+            ta: 'center',
+            o: '',
+            img: '01IMAGE',
+            pv: 'data:image/jpeg;base64,AAAA',
+        };
+
+        expect(mapShapeFromApi(shape)).toEqual({
+            id: '06IMG',
+            type: 'image',
+            left: 10,
+            top: 20,
+            width: 320,
+            height: 180,
+            fill: '#ffffff',
+            stroke: '#c0392b',
+            strokeWidth: 1,
+            scaleX: 1,
+            scaleY: 1,
+            text: 'i',
+            textAlign: 'center',
+            order: '',
+            img: '01IMAGE',
+            pv: 'data:image/jpeg;base64,AAAA',
+        });
+    });
+
+    it('должен маппить I без pv в image с пустым img', () => {
+        const shape: DiagramShape = {
+            id: '06IMG',
+            tp: 'I',
+            l: 0,
+            t: 0,
+            w: 320,
+            h: 180,
+            sx: 1,
+            sy: 1,
+            fc: '#ffffff',
+            sc: '#c0392b',
+            txt: 'i',
+            o: '',
+        };
+
+        const result = mapShapeFromApi(shape);
+        expect(result).toMatchObject({ type: 'image', img: '' });
+        expect(result).not.toHaveProperty('pv');
+    });
 
     it('должен выбрасывать ошибку для неизвестного tp', () => {
         const shape = {
@@ -381,6 +499,10 @@ describe('mapTypeToApi', () => {
 
     it('должен маппить text в T', () => {
         expect(mapTypeToApi('text')).toBe('T');
+    });
+
+    it('должен маппить image в I', () => {
+        expect(mapTypeToApi('image')).toBe('I');
     });
 
     it('должен выбрасывать ошибку для неизвестного типа', () => {

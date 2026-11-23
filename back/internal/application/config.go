@@ -27,6 +27,8 @@ type Configuration struct {
 	WebSocket WebSocketServer
 	Postgres  Postgres
 	Mailer    Mailer
+	Storage   Storage
+	Images    Images
 	Metrics   Metrics
 	Tracer    Tracer
 	Feature   Feature
@@ -160,6 +162,107 @@ func (m Mailer) validate() error {
 	}
 	if m.From == "" {
 		return errors.New("MAILER_FROM is empty while FEATURE_AUTH_EMAIL_ENABLED=true")
+	}
+
+	return nil
+}
+
+// Storage конфигурация хранилища блобов изображений.
+type Storage struct {
+	// Provider - провайдер хранилища.
+	// Возможные значения: "local", "s3".
+	Provider string `env:"STORAGE_PROVIDER" envDefault:"local"`
+
+	// Local - параметры локального хранилища.
+	Local StorageLocal
+
+	// S3 - параметры S3-хранилища.
+	S3 StorageS3
+}
+
+// StorageLocal параметры локального хранилища.
+type StorageLocal struct {
+	// Path - каталог локального хранилища. Обязателен при Provider=local.
+	Path string `env:"STORAGE_LOCAL_PATH"`
+}
+
+// StorageS3 параметры S3-совместимого хранилища.
+type StorageS3 struct {
+	// Endpoint - адрес S3-совместимого хранилища.
+	Endpoint string `env:"STORAGE_S3_ENDPOINT"`
+
+	// Region - регион S3.
+	Region string `env:"STORAGE_S3_REGION"`
+
+	// Bucket - бакет S3.
+	Bucket string `env:"STORAGE_S3_BUCKET"`
+
+	// AccessKey - статический ключ доступа S3. Задаётся вместе с SecretKey.
+	AccessKey string `env:"STORAGE_S3_ACCESS_KEY"`
+
+	// SecretKey - статический секрет доступа S3. Задаётся вместе с AccessKey.
+	SecretKey string `env:"STORAGE_S3_SECRET_KEY"`
+
+	// ForcePathStyle - использовать path-style обращения к S3.
+	ForcePathStyle bool `env:"STORAGE_S3_FORCE_PATH_STYLE" envDefault:"false"`
+
+	// Prefix - префикс объектов в S3.
+	Prefix string `env:"STORAGE_S3_PREFIX"`
+}
+
+func (s Storage) validate() error {
+	switch s.Provider {
+	case "local":
+		if s.Local.Path == "" {
+			return errors.New("STORAGE_LOCAL_PATH is empty while STORAGE_PROVIDER=local")
+		}
+	case "s3":
+		if s.S3.Endpoint == "" {
+			return errors.New("STORAGE_S3_ENDPOINT is empty while STORAGE_PROVIDER=s3")
+		}
+		if s.S3.Region == "" {
+			return errors.New("STORAGE_S3_REGION is empty while STORAGE_PROVIDER=s3")
+		}
+		if s.S3.Bucket == "" {
+			return errors.New("STORAGE_S3_BUCKET is empty while STORAGE_PROVIDER=s3")
+		}
+		if (s.S3.AccessKey == "") != (s.S3.SecretKey == "") {
+			return errors.New("STORAGE_S3_ACCESS_KEY and STORAGE_S3_SECRET_KEY must be set together")
+		}
+	default:
+		return fmt.Errorf("unknown storage provider %q", s.Provider)
+	}
+
+	return nil
+}
+
+// Images конфигурация обработки загружаемых изображений.
+type Images struct {
+	// MaxFileSizeBytes - максимальный размер загружаемого файла в байтах.
+	MaxFileSizeBytes int64 `env:"IMAGE_MAX_FILE_SIZE" envDefault:"2097152"`
+
+	// MaxPixels - максимальное число пикселей изображения (width*height).
+	MaxPixels int `env:"IMAGE_MAX_PIXELS" envDefault:"12000000"`
+
+	// PreviewMaxSidePx - максимальная длинная сторона preview.
+	PreviewMaxSidePx int `env:"IMAGE_PREVIEW_MAX_SIDE_PX" envDefault:"250"`
+
+	// FullscreenMaxSidePx - максимальная длинная сторона полноэкранного варианта.
+	FullscreenMaxSidePx int `env:"IMAGE_FULLSCREEN_MAX_SIDE_PX" envDefault:"2048"`
+}
+
+func (i Images) validate() error {
+	if i.MaxFileSizeBytes <= 0 {
+		return errors.New("IMAGE_MAX_FILE_SIZE must be positive")
+	}
+	if i.MaxPixels <= 0 {
+		return errors.New("IMAGE_MAX_PIXELS must be positive")
+	}
+	if i.PreviewMaxSidePx <= 0 {
+		return errors.New("IMAGE_PREVIEW_MAX_SIDE_PX must be positive")
+	}
+	if i.FullscreenMaxSidePx <= 0 {
+		return errors.New("IMAGE_FULLSCREEN_MAX_SIDE_PX must be positive")
 	}
 
 	return nil
@@ -437,6 +540,14 @@ func LoadConfiguration() (*Configuration, error) {
 	}
 
 	config.AppBaseURL = strings.TrimSuffix(config.AppBaseURL, "/")
+
+	if err := config.Storage.validate(); err != nil {
+		return nil, fmt.Errorf("validate storage: %w", err)
+	}
+
+	if err := config.Images.validate(); err != nil {
+		return nil, fmt.Errorf("validate images: %w", err)
+	}
 
 	if err := config.Feature.Captcha.validate(); err != nil {
 		return nil, fmt.Errorf("validate captcha: %w", err)

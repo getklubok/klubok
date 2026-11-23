@@ -190,6 +190,65 @@ func (_c *DBUseCaseMock_DiagramCreate_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
+// DiagramDeleteWithImages provides a mock function with given fields: ctx, diagramID
+func (_m *DBUseCaseMock) DiagramDeleteWithImages(ctx context.Context, diagramID string) ([]db.ImageBlob, error) {
+	ret := _m.Called(ctx, diagramID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DiagramDeleteWithImages")
+	}
+
+	var r0 []db.ImageBlob
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]db.ImageBlob, error)); ok {
+		return rf(ctx, diagramID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []db.ImageBlob); ok {
+		r0 = rf(ctx, diagramID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.ImageBlob)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, diagramID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DBUseCaseMock_DiagramDeleteWithImages_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DiagramDeleteWithImages'
+type DBUseCaseMock_DiagramDeleteWithImages_Call struct {
+	*mock.Call
+}
+
+// DiagramDeleteWithImages is a helper method to define mock.On call
+//   - ctx context.Context
+//   - diagramID string
+func (_e *DBUseCaseMock_Expecter) DiagramDeleteWithImages(ctx interface{}, diagramID interface{}) *DBUseCaseMock_DiagramDeleteWithImages_Call {
+	return &DBUseCaseMock_DiagramDeleteWithImages_Call{Call: _e.mock.On("DiagramDeleteWithImages", ctx, diagramID)}
+}
+
+func (_c *DBUseCaseMock_DiagramDeleteWithImages_Call) Run(run func(ctx context.Context, diagramID string)) *DBUseCaseMock_DiagramDeleteWithImages_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *DBUseCaseMock_DiagramDeleteWithImages_Call) Return(_a0 []db.ImageBlob, _a1 error) *DBUseCaseMock_DiagramDeleteWithImages_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *DBUseCaseMock_DiagramDeleteWithImages_Call) RunAndReturn(run func(context.Context, string) ([]db.ImageBlob, error)) *DBUseCaseMock_DiagramDeleteWithImages_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DiagramShapeBatchUpsert provides a mock function with given fields: ctx, diagramID, shapes
 func (_m *DBUseCaseMock) DiagramShapeBatchUpsert(ctx context.Context, diagramID string, shapes []domain.DiagramShape) error {
 	ret := _m.Called(ctx, diagramID, shapes)
@@ -234,6 +293,66 @@ func (_c *DBUseCaseMock_DiagramShapeBatchUpsert_Call) Return(_a0 error) *DBUseCa
 }
 
 func (_c *DBUseCaseMock_DiagramShapeBatchUpsert_Call) RunAndReturn(run func(context.Context, string, []domain.DiagramShape) error) *DBUseCaseMock_DiagramShapeBatchUpsert_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DiagramShapeDeleteWithImage provides a mock function with given fields: ctx, diagramID, shapeID
+func (_m *DBUseCaseMock) DiagramShapeDeleteWithImage(ctx context.Context, diagramID string, shapeID string) ([]db.ImageBlob, error) {
+	ret := _m.Called(ctx, diagramID, shapeID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DiagramShapeDeleteWithImage")
+	}
+
+	var r0 []db.ImageBlob
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) ([]db.ImageBlob, error)); ok {
+		return rf(ctx, diagramID, shapeID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []db.ImageBlob); ok {
+		r0 = rf(ctx, diagramID, shapeID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]db.ImageBlob)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, diagramID, shapeID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DBUseCaseMock_DiagramShapeDeleteWithImage_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DiagramShapeDeleteWithImage'
+type DBUseCaseMock_DiagramShapeDeleteWithImage_Call struct {
+	*mock.Call
+}
+
+// DiagramShapeDeleteWithImage is a helper method to define mock.On call
+//   - ctx context.Context
+//   - diagramID string
+//   - shapeID string
+func (_e *DBUseCaseMock_Expecter) DiagramShapeDeleteWithImage(ctx interface{}, diagramID interface{}, shapeID interface{}) *DBUseCaseMock_DiagramShapeDeleteWithImage_Call {
+	return &DBUseCaseMock_DiagramShapeDeleteWithImage_Call{Call: _e.mock.On("DiagramShapeDeleteWithImage", ctx, diagramID, shapeID)}
+}
+
+func (_c *DBUseCaseMock_DiagramShapeDeleteWithImage_Call) Run(run func(ctx context.Context, diagramID string, shapeID string)) *DBUseCaseMock_DiagramShapeDeleteWithImage_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *DBUseCaseMock_DiagramShapeDeleteWithImage_Call) Return(_a0 []db.ImageBlob, _a1 error) *DBUseCaseMock_DiagramShapeDeleteWithImage_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *DBUseCaseMock_DiagramShapeDeleteWithImage_Call) RunAndReturn(run func(context.Context, string, string) ([]db.ImageBlob, error)) *DBUseCaseMock_DiagramShapeDeleteWithImage_Call {
 	_c.Call.Return(run)
 	return _c
 }

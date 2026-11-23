@@ -3,22 +3,34 @@ package diagram
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"time"
 
 	"go.uber.org/zap"
 
+	"klubok/internal/application/service/image"
 	"klubok/internal/application/websocket"
 	"klubok/internal/db"
 	"klubok/internal/db/sqlc"
 	"klubok/internal/domain"
 )
 
+// previewDataURLPrefix — префикс data URL для preview, который подставляется в pv шейпа.
+const previewDataURLPrefix = "data:image/jpeg;base64,"
+
+type shConCom struct {
+	shapes            []domain.DiagramShape
+	connections       []domain.DiagramConnection
+	shapeCommentStats []domain.DiagramShapeCommentStat
+}
+
 type Service struct {
-	querier   Querier
-	dbUseCase DBUseCase
-	wsManager WebSocketManager
+	querier     Querier
+	dbUseCase   DBUseCase
+	wsManager   WebSocketManager
+	blobCleaner BlobCleaner
 
 	log *zap.Logger
 
@@ -26,11 +38,18 @@ type Service struct {
 	nowFunc func() time.Time
 }
 
-func NewService(querier Querier, dbUseCase DBUseCase, wsManager WebSocketManager, log *zap.Logger) *Service {
+func NewService(
+	querier Querier,
+	dbUseCase DBUseCase,
+	wsManager WebSocketManager,
+	blobCleaner BlobCleaner,
+	log *zap.Logger,
+) *Service {
 	return &Service{
-		querier:   querier,
-		dbUseCase: dbUseCase,
-		wsManager: wsManager,
+		querier:     querier,
+		dbUseCase:   dbUseCase,
+		wsManager:   wsManager,
+		blobCleaner: blobCleaner,
 
 		log: log.Named("diagram_service"),
 
@@ -65,10 +84,12 @@ func (s *Service) List(ctx context.Context, userID domain.UserID) ([]domain.Diag
 }
 
 func (s *Service) Delete(ctx context.Context, diagramID domain.DiagramID) error {
-	err := s.querier.DiagramDelete(ctx, diagramID.String())
+	blobs, err := s.dbUseCase.DiagramDeleteWithImages(ctx, diagramID.String())
 	if err != nil {
 		return fmt.Errorf("delete diagram: %w", err)
 	}
+
+	s.enqueueCleanup(blobs)
 
 	return nil
 }
@@ -92,7 +113,7 @@ func (s *Service) Info(ctx context.Context, diagramID domain.DiagramID) (domain.
 		return domain.DiagramInfo{}, fmt.Errorf("get diagram: %w", err)
 	}
 
-	shConCom, err := s.getShConCom(ctx, diagramID)
+	scs, err := s.getShConCom(ctx, diagramID)
 	if err != nil {
 		return domain.DiagramInfo{}, fmt.Errorf("get shapes, connections and comments: %w", err)
 	}
@@ -101,9 +122,9 @@ func (s *Service) Info(ctx context.Context, diagramID domain.DiagramID) (domain.
 		ID:                diagramID,
 		Title:             diagram.Title,
 		Permission:        domain.DiagramCollaboratorPermissionView,
-		Shapes:            shConCom.shapes,
-		Connections:       shConCom.connections,
-		ShapeCommentStats: shConCom.shapeCommentStats,
+		Shapes:            scs.shapes,
+		Connections:       scs.connections,
+		ShapeCommentStats: scs.shapeCommentStats,
 	}, nil
 }
 
@@ -117,7 +138,7 @@ func (s *Service) InfoByUser(ctx context.Context, diagramID domain.DiagramID, us
 		return domain.DiagramInfo{}, fmt.Errorf("get diagram: %w", err)
 	}
 
-	shConCom, err := s.getShConCom(ctx, diagramID)
+	scs, err := s.getShConCom(ctx, diagramID)
 	if err != nil {
 		return domain.DiagramInfo{}, fmt.Errorf("get shapes, connections and comments: %w", err)
 	}
@@ -126,9 +147,9 @@ func (s *Service) InfoByUser(ctx context.Context, diagramID domain.DiagramID, us
 		ID:                diagramID,
 		Title:             diagram.Title,
 		Permission:        diagram.Permission,
-		Shapes:            shConCom.shapes,
-		Connections:       shConCom.connections,
-		ShapeCommentStats: shConCom.shapeCommentStats,
+		Shapes:            scs.shapes,
+		Connections:       scs.connections,
+		ShapeCommentStats: scs.shapeCommentStats,
 	}, nil
 }
 
@@ -141,11 +162,19 @@ func (s *Service) ShapeUpsert(ctx context.Context, userID domain.UserID, diagram
 		return fmt.Errorf("upsert diagram shape: %w", err)
 	}
 
+	broadcast := []domain.DiagramShape{shape}
+	if err := s.enrichPreviews(ctx, diagramID, broadcast); err != nil {
+		s.log.Warn("Enrich shape preview",
+			zap.String("diagramID", diagramID.String()),
+			zap.Error(err),
+		)
+	}
+
 	msg := websocket.Message{
 		Type:      domain.WebSocketMessageTypeShapeUpserted,
 		DiagramID: diagramID,
 		Timestamp: s.nowFunc().Unix(),
-		Data:      shape,
+		Data:      broadcast[0],
 	}
 	if err := s.wsManager.BroadcastToDiagram(diagramID, msg, &userID); err != nil {
 		s.log.Warn("Broadcast to diagram",
@@ -158,7 +187,7 @@ func (s *Service) ShapeUpsert(ctx context.Context, userID domain.UserID, diagram
 	return nil
 }
 
-func (s *Service) ShapeBatchUpsert( //nolint:dupl // It`s ok
+func (s *Service) ShapeBatchUpsert(
 	ctx context.Context,
 	userID domain.UserID,
 	diagramID domain.DiagramID,
@@ -170,6 +199,13 @@ func (s *Service) ShapeBatchUpsert( //nolint:dupl // It`s ok
 
 	if err := s.dbUseCase.DiagramShapeBatchUpsert(ctx, diagramID.String(), shapes); err != nil {
 		return fmt.Errorf("batch upsert shapes: %w", err)
+	}
+
+	if err := s.enrichPreviews(ctx, diagramID, shapes); err != nil {
+		s.log.Warn("Enrich shapes previews",
+			zap.String("diagramID", diagramID.String()),
+			zap.Error(err),
+		)
 	}
 
 	// Broadcast each shape change
@@ -193,9 +229,12 @@ func (s *Service) ShapeBatchUpsert( //nolint:dupl // It`s ok
 }
 
 func (s *Service) ShapeDelete(ctx context.Context, userID domain.UserID, diagramID domain.DiagramID, shapeID domain.ShapeID) error {
-	if err := s.querier.DiagramShapeDelete(ctx, shapeID.String(), diagramID.String()); err != nil {
+	blobs, err := s.dbUseCase.DiagramShapeDeleteWithImage(ctx, diagramID.String(), shapeID.String())
+	if err != nil {
 		return fmt.Errorf("delete diagram shape: %w", err)
 	}
+
+	s.enqueueCleanup(blobs)
 
 	msg := websocket.Message{
 		Type:      domain.WebSocketMessageTypeShapeDeleted,
@@ -241,7 +280,7 @@ func (s *Service) ConnectionUpsert(ctx context.Context, userID domain.UserID, di
 	return nil
 }
 
-func (s *Service) ConnectionBatchUpsert( //nolint:dupl // It`s ok
+func (s *Service) ConnectionBatchUpsert(
 	ctx context.Context,
 	userID domain.UserID,
 	diagramID domain.DiagramID,
@@ -392,6 +431,11 @@ func (s *Service) Clone(ctx context.Context, diagramID domain.DiagramID, userID 
 		return domain.Diagram{}, fmt.Errorf("get diagram collaborators: %w", err)
 	}
 
+	dbImages, err := s.querier.ImageListByDiagram(ctx, diagramID.String())
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return domain.Diagram{}, fmt.Errorf("get diagram images: %w", err)
+	}
+
 	shapeIDMap := make(map[domain.ShapeID]string, len(src.Shapes))
 	newShapes := make([]db.DiagramShapeClone, 0, len(src.Shapes))
 	for _, shape := range src.Shapes {
@@ -413,6 +457,7 @@ func (s *Service) Clone(ctx context.Context, diagramID domain.DiagramID, userID 
 				Text:      shape.Text,
 				TextAlign: shape.TextAlign,
 				Order:     shape.Order,
+				Img:       shape.Img,
 			},
 		})
 	}
@@ -435,20 +480,7 @@ func (s *Service) Clone(ctx context.Context, diagramID domain.DiagramID, userID 
 		})
 	}
 
-	newCollaborators := make([]db.DiagramCollaboratorClone, 0, len(dbCollaborators))
-	for _, c := range dbCollaborators {
-		if c.Permission == domain.DiagramCollaboratorPermissionOwner {
-			continue
-		}
-		if c.UserID == userID.String() {
-			continue
-		}
-		newCollaborators = append(newCollaborators, db.DiagramCollaboratorClone{
-			ID:         s.idFunc(),
-			UserID:     c.UserID,
-			Permission: c.Permission,
-		})
-	}
+	newCollaborators := s.cloneCollaborators(dbCollaborators, userID)
 
 	newDiagramID := s.idFunc()
 	newTitle := src.Title + " (copy)"
@@ -461,6 +493,7 @@ func (s *Service) Clone(ctx context.Context, diagramID domain.DiagramID, userID 
 		Connections:   newConnections,
 		Comments:      newComments,
 		Collaborators: newCollaborators,
+		Images:        cloneImageParams(dbImages),
 	})
 	if err != nil {
 		return domain.Diagram{}, fmt.Errorf("clone diagram: %w", err)
@@ -473,6 +506,12 @@ func (s *Service) Import(ctx context.Context, userID domain.UserID, diagramInfo 
 	shapeIDMap := make(map[domain.ShapeID]string, len(diagramInfo.Shapes))
 	newShapes := make([]db.DiagramShapeClone, 0, len(diagramInfo.Shapes))
 	for _, shape := range diagramInfo.Shapes {
+		// Изображения при JSON-импорте не переносятся: их блобы и строки images
+		// остаются в исходной диаграмме, поэтому Image-шейпы отбрасываются.
+		if shape.Type == domain.DiagramShapeTypeImage {
+			continue
+		}
+
 		newID := s.idFunc()
 		shapeIDMap[shape.ID] = newID
 		newShapes = append(newShapes, db.DiagramShapeClone{
@@ -497,9 +536,19 @@ func (s *Service) Import(ctx context.Context, userID domain.UserID, diagramInfo 
 
 	newConnections := make([]db.DiagramConnectionClone, 0, len(diagramInfo.Connections))
 	for _, conn := range diagramInfo.Connections {
+		fromID, ok := shapeIDMap[conn.FromShapeID]
+		if !ok {
+			continue
+		}
+
+		toID, ok := shapeIDMap[conn.ToShapeID]
+		if !ok {
+			continue
+		}
+
 		newConnections = append(newConnections, db.DiagramConnectionClone{
-			FromShapeID: shapeIDMap[conn.FromShapeID],
-			ToShapeID:   shapeIDMap[conn.ToShapeID],
+			FromShapeID: fromID,
+			ToShapeID:   toID,
 		})
 	}
 
@@ -523,10 +572,76 @@ func (s *Service) Import(ctx context.Context, userID domain.UserID, diagramInfo 
 	return diagramToDomain(result), nil
 }
 
-type shConCom struct {
-	shapes            []domain.DiagramShape
-	connections       []domain.DiagramConnection
-	shapeCommentStats []domain.DiagramShapeCommentStat
+// enqueueCleanup ставит в очиститель блобы, освободившиеся после коммита транзакции.
+func (s *Service) enqueueCleanup(blobs []db.ImageBlob) {
+	if len(blobs) == 0 {
+		return
+	}
+
+	cleanup := make([]image.Blob, 0, len(blobs))
+	for _, blob := range blobs {
+		cleanup = append(cleanup, image.Blob{Hash: blob.Hash, Mime: blob.Mime})
+	}
+
+	s.blobCleaner.EnqueueCleanup(cleanup)
+}
+
+// cloneCollaborators копирует участников исходной диаграммы, кроме владельца и самого клонирующего.
+func (s *Service) cloneCollaborators(
+	rows []sqlc.DiagramCollaborator,
+	userID domain.UserID,
+) []db.DiagramCollaboratorClone {
+	collaborators := make([]db.DiagramCollaboratorClone, 0, len(rows))
+	for _, row := range rows {
+		if row.Permission == domain.DiagramCollaboratorPermissionOwner {
+			continue
+		}
+		if row.UserID == userID.String() {
+			continue
+		}
+
+		collaborators = append(collaborators, db.DiagramCollaboratorClone{
+			ID:         s.idFunc(),
+			UserID:     row.UserID,
+			Permission: row.Permission,
+		})
+	}
+
+	return collaborators
+}
+
+// enrichPreviews подставляет pv из preview этой же диаграммы в шейпы, ссылающиеся на её images.
+func (s *Service) enrichPreviews(ctx context.Context, diagramID domain.DiagramID, shapes []domain.DiagramShape) error {
+	hasImage := false
+	for _, shape := range shapes {
+		if shape.Img != "" {
+			hasImage = true
+
+			break
+		}
+	}
+
+	if !hasImage {
+		return nil
+	}
+
+	rows, err := s.querier.ImagePreviewListByDiagram(ctx, diagramID.String())
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("get diagram image previews: %w", err)
+	}
+
+	previews := make(map[string]string, len(rows))
+	for _, row := range rows {
+		previews[row.ID] = previewDataURLPrefix + base64.StdEncoding.EncodeToString(row.Preview)
+	}
+
+	for i, shape := range shapes {
+		if pv, ok := previews[shape.Img]; ok {
+			shapes[i].Pv = pv
+		}
+	}
+
+	return nil
 }
 
 func (s *Service) getShConCom(ctx context.Context, diagramID domain.DiagramID) (shConCom, error) {
@@ -537,6 +652,10 @@ func (s *Service) getShConCom(ctx context.Context, diagramID domain.DiagramID) (
 	shapes := make([]domain.DiagramShape, 0, len(dbShapes))
 	for _, dbShape := range dbShapes {
 		shapes = append(shapes, dbShape.Data)
+	}
+
+	if err := s.enrichPreviews(ctx, diagramID, shapes); err != nil {
+		return shConCom{}, err
 	}
 
 	dbConnections, err := s.querier.DiagramConnectionList(ctx, diagramID.String())
@@ -561,4 +680,20 @@ func (s *Service) getShConCom(ctx context.Context, diagramID domain.DiagramID) (
 		connections:       connections,
 		shapeCommentStats: commentStatRowsToDomains(shapeCommentStats),
 	}, nil
+}
+
+// cloneImageParams описывает строки images, которые клон копирует с новыми id.
+func cloneImageParams(rows []sqlc.Image) []db.ImageClone {
+	images := make([]db.ImageClone, 0, len(rows))
+	for _, row := range rows {
+		images = append(images, db.ImageClone{
+			ID:           row.ID,
+			BlobHash:     row.BlobHash,
+			Preview:      row.Preview,
+			OriginalName: row.OriginalName,
+			Mime:         row.Mime,
+		})
+	}
+
+	return images
 }

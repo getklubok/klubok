@@ -12,6 +12,7 @@ import { ulid } from 'ulid';
 
 import {
     type ShapeElement,
+    type IImageElement,
     type ConnectionElement,
     type CursorData,
     type DrawingMode,
@@ -36,6 +37,8 @@ import {
     DEFAULT_STROKE_ELLIPSE,
     DEFAULT_STROKE_DIAMOND,
     DEFAULT_STROKE_BOX,
+    IMAGE_INSERT_SIZE,
+    IMAGE_TEXT,
     SELECTION_BORDER_DARK,
     SELECTION_BORDER_LIGHT,
 } from '../constants';
@@ -55,11 +58,13 @@ import { controlsManager } from './ControlsManager';
 import { webSocketManager } from './WebSocketManager';
 import { autoSaveService } from './AutoSaveService';
 
-import type { DiagramCollaboratorPermissionEnum, DiagramInfo, OnlineUser } from '../ApiSpec';
+import type { DiagramCollaboratorPermissionEnum, DiagramInfo, ImageUploadResponse, OnlineUser } from '../ApiSpec';
 import { getBoundingBox } from '../utils/getBoundingBox';
 import { isShapeGroup } from '../utils/isShapeGroup';
 import { calcBoxLine, calcBoxText } from '../utils/calcBox';
 import { applyTextHorizontalAlign } from '../utils/textAlign';
+import { alert as showAlert } from '../utils/alert';
+import { api } from '../Api';
 
 type UserID = string;
 
@@ -84,6 +89,7 @@ export interface CanvasManagerDependencies {
     setCoordinates: (x: number, y: number, zoom: number) => void;
     mapShapeFromApi: (shape: import('../ApiSpec').DiagramShape) => ShapeElement;
     mapConnectionFromApi: (conn: import('../ApiSpec').DiagramConnection) => ConnectionElement;
+    imageUpload: (diagramId: string, data: { file: File }) => Promise<ImageUploadResponse>;
 }
 
 const LONG_PRESS_MS = 500;
@@ -107,6 +113,7 @@ const defaultDeps: CanvasManagerDependencies = {
     setCoordinates: (x, y, zoom) => coordinatesManager.set(x, y, zoom),
     mapShapeFromApi,
     mapConnectionFromApi,
+    imageUpload: (diagramId, data) => api.diagramService.imageUpload(diagramId, data),
 };
 
 export class CanvasManager {
@@ -668,6 +675,59 @@ export class CanvasManager {
         return this.addShape(upsertedShape);
     }
 
+    /**
+     * Загружает изображение и вставляет Image-шейп в точку (по умолчанию — центр видимой
+     * области) с длинной стороной IMAGE_INSERT_SIZE px и пропорциями оригинала.
+     * При ошибке загрузки шейп не создаётся.
+     */
+    public async uploadImage(file: File, point?: ClientPoint): Promise<void> {
+        if (!this.canvas || !this.diagramInfo) return;
+        if (!this.deps.hasPermission(this.diagramInfo.permission)) return;
+
+        let uploaded: ImageUploadResponse;
+        try {
+            uploaded = await this.deps.imageUpload(this.diagramInfo.id, { file });
+        } catch (error) {
+            logger.mustError('Image upload failed:', error);
+            showAlert({ message: 'Не удалось загрузить изображение', type: 'danger' });
+            return;
+        }
+
+        const center = point ?? this.getViewportCenter();
+        const isLandscape = uploaded.width >= uploaded.height;
+        const ratio = uploaded.width / uploaded.height;
+        const element: IImageElement = {
+            id: this.deps.createId(),
+            type: 'image',
+            left: center.x,
+            top: center.y,
+            width: isLandscape ? IMAGE_INSERT_SIZE : Math.round(IMAGE_INSERT_SIZE * ratio),
+            height: isLandscape ? Math.round(IMAGE_INSERT_SIZE / ratio) : IMAGE_INSERT_SIZE,
+            fill: 'transparent',
+            stroke: 'transparent',
+            strokeWidth: DEFAULT_STROKE_WIDTH,
+            scaleX: DEFAULT_SCALE,
+            scaleY: DEFAULT_SCALE,
+            text: IMAGE_TEXT,
+            order: '',
+            img: uploaded.id,
+            pv: uploaded.pv,
+        };
+
+        this.addShape(element);
+        this.canvas.requestRenderAll();
+    }
+
+    private getViewportCenter(): ClientPoint {
+        const canvas = this.canvas as FabricCanvas;
+        const vpt = canvas.viewportTransform ?? [1, 0, 0, 1, 0, 0];
+        const zoom = canvas.getZoom();
+
+        return {
+            x: (canvas.getWidth() / 2 - vpt[4]) / zoom,
+            y: (canvas.getHeight() / 2 - vpt[5]) / zoom,
+        };
+    }
     public setTextAlign(shapeId: string, textAlign: TextAlign) {
         const shape = shapeStoreManager.getById(shapeId);
         if (!shape || (shape.type !== 'box' && shape.type !== 'text')) return;
@@ -1565,41 +1625,7 @@ export class CanvasManager {
                     obj.setCoords();
 
                     if (shape) {
-                        switch (obj.shapeType) {
-                            case 'square':
-                            case 'text':
-                                {
-                                    shape.set({ width: snappedW, height: snappedH });
-                                }
-                                break;
-                            case 'ellipse':
-                                {
-                                    shape.set({ rx: snappedW / 2, ry: snappedH / 2 });
-                                }
-                                break;
-                            case 'diamond':
-                                {
-                                    // diamond: points are based on width/height
-                                    const points = [
-                                        { x: 0, y: -snappedH / 2 },
-                                        { x: snappedW / 2, y: 0 },
-                                        { x: 0, y: snappedH / 2 },
-                                        { x: -snappedW / 2, y: 0 },
-                                    ];
-                                    shape.set({ points });
-                                }
-                                break;
-                            case 'box':
-                                {
-                                    shape.set({ width: snappedW, height: snappedH });
-                                    obj.setCoords();
-                                    obj.item(2).set({ points: calcBoxLine(snappedW, snappedH, text.text || '') });
-                                    text.set({ top: calcBoxText(snappedH, text.height) });
-                                }
-                                break;
-                            default:
-                                break;
-                        }
+                        this.resizeInnerShape(obj, shape, snappedW, snappedH);
                     }
 
                     applyTextHorizontalAlign(
@@ -1611,6 +1637,56 @@ export class CanvasManager {
                     obj.dirty = true;
                     obj.setCoords();
                 }
+                break;
+        }
+    }
+
+    /** Подгоняет внутренние объекты группы под новый размер при масштабировании. */
+    private resizeInnerShape(obj: FabricGroup, shape: FabricObject, width: number, height: number) {
+        switch (obj.shapeType) {
+            case 'square':
+            case 'text':
+                {
+                    shape.set({ width, height });
+                }
+                break;
+            case 'ellipse':
+                {
+                    shape.set({ rx: width / 2, ry: height / 2 });
+                }
+                break;
+            case 'diamond':
+                {
+                    // diamond: points are based on width/height
+                    const points = [
+                        { x: 0, y: -height / 2 },
+                        { x: width / 2, y: 0 },
+                        { x: 0, y: height / 2 },
+                        { x: -width / 2, y: 0 },
+                    ];
+                    shape.set({ points });
+                }
+                break;
+            case 'box':
+                {
+                    const text = obj.item(1) as FabricIText;
+                    shape.set({ width, height });
+                    obj.setCoords();
+                    obj.item(2).set({ points: calcBoxLine(width, height, text.text || '') });
+                    text.set({ top: calcBoxText(height, text.height) });
+                }
+                break;
+            case 'image':
+                {
+                    shape.set({ width, height });
+                    const preview = obj.getObjects().find((child) => child.type === 'image');
+                    if (preview && preview.width && preview.height) {
+                        const previewScale = Math.min(width / preview.width, height / preview.height);
+                        preview.set({ scaleX: previewScale, scaleY: previewScale });
+                    }
+                }
+                break;
+            default:
                 break;
         }
     }

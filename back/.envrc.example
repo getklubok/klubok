@@ -60,6 +60,24 @@ export MAILER_USERNAME="no-reply@domain.tld"
 export MAILER_PASSWORD="password"
 export MAILER_FROM="Клубок <no-reply@domain.tld>"
 
+# local, s3
+export STORAGE_PROVIDER="local"
+export STORAGE_LOCAL_PATH="./storage"
+
+# Для STORAGE_PROVIDER=s3 обязательны STORAGE_S3_ENDPOINT, STORAGE_S3_REGION и STORAGE_S3_BUCKET.
+# export STORAGE_S3_ENDPOINT="https://storage.yandexcloud.net"
+# export STORAGE_S3_REGION="ru-central1"
+# export STORAGE_S3_BUCKET="klubok"
+# export STORAGE_S3_ACCESS_KEY=""
+# export STORAGE_S3_SECRET_KEY=""
+# export STORAGE_S3_FORCE_PATH_STYLE=false
+# export STORAGE_S3_PREFIX=""
+
+# export IMAGE_MAX_FILE_SIZE=2097152
+# export IMAGE_MAX_PIXELS=12000000
+# export IMAGE_PREVIEW_MAX_SIDE_PX=250
+# export IMAGE_FULLSCREEN_MAX_SIDE_PX=2048
+
 # for integration tests
 # host=127.0.0.1
 export TEST_INTEGRATION_PG_PORT=5433

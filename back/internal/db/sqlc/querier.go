@@ -38,6 +38,7 @@ type Querier interface {
 	DiagramSetTitle(ctx context.Context, iD string, title string) error
 	DiagramShapeBulkInsert(ctx context.Context, arg []DiagramShapeBulkInsertParams) (int64, error)
 	DiagramShapeDelete(ctx context.Context, iD string, diagramID string) error
+	DiagramShapeGet(ctx context.Context, iD string, diagramID string) (DiagramShape, error)
 	DiagramShapeList(ctx context.Context, diagramID string) ([]DiagramShape, error)
 	DiagramShapeUpsert(ctx context.Context, arg DiagramShapeUpsertParams) error
 	EmbedCreate(ctx context.Context, arg EmbedCreateParams) (DiagramEmbed, error)
@@ -46,6 +47,14 @@ type Querier interface {
 	EmbedIncrementViews(ctx context.Context, id string) error
 	EmbedListByDiagram(ctx context.Context, diagramID string) ([]DiagramEmbed, error)
 	EmbedSoftDelete(ctx context.Context, id string) error
+	ImageBulkInsert(ctx context.Context, arg []ImageBulkInsertParams) (int64, error)
+	ImageCreate(ctx context.Context, arg ImageCreateParams) (Image, error)
+	ImageDeleteForDiagram(ctx context.Context, diagramID string) ([]ImageDeleteForDiagramRow, error)
+	ImageDeleteForShape(ctx context.Context, iD string, diagramID string) (ImageDeleteForShapeRow, error)
+	ImageExistsByBlobHash(ctx context.Context, blobHash string) (bool, error)
+	ImageGet(ctx context.Context, iD string, diagramID string) (Image, error)
+	ImageListByDiagram(ctx context.Context, diagramID string) ([]Image, error)
+	ImagePreviewListByDiagram(ctx context.Context, diagramID string) ([]ImagePreviewListByDiagramRow, error)
 	PrivacyLogCreate(ctx context.Context, arg PrivacyLogCreateParams) error
 	SessionCancelOld(ctx context.Context, checkedAt time.Time) error
 	SessionCreate(ctx context.Context, arg SessionCreateParams) (Session, error)

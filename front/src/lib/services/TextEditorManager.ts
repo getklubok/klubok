@@ -55,6 +55,7 @@ export class TextEditorManager {
     public startEditing(group: FabricGroup) {
         if (!this.canvas) return false;
         if (!isShapeGroup(group)) return false;
+        if (group.shapeType === 'image') return false;
 
         const shape = this.deps.getById(group.name || '');
         if (shape) {

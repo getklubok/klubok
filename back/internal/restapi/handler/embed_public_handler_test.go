@@ -64,6 +64,67 @@ func TestEmbedPublic_EmbedData(t *testing.T) {
 			},
 		},
 		{
+			name:   "Success - image preview",
+			params: oas.EmbedDataParams{Token: "embed-token-2"},
+			ctx:    context.Background,
+			handler: func(t *testing.T) *EmbedPublic {
+				t.Helper()
+
+				embedSvc := mocks.NewEmbedServiceMock(t)
+				embedSvc.EXPECT().
+					GetByToken(mock.Anything, "embed-token-2").
+					Return(domain.DiagramEmbedInfo{
+						ID:        "embed-2",
+						DiagramID: "diag-2",
+					}, nil)
+
+				diagramSvc := mocks.NewDiagramServiceMock(t)
+				diagramSvc.EXPECT().
+					Info(mock.Anything, domain.DiagramID("diag-2")).
+					Return(domain.DiagramInfo{
+						ID:         "diag-2",
+						Title:      "Diagram",
+						Permission: domain.DiagramCollaboratorPermissionView,
+						Shapes: []domain.DiagramShape{
+							{
+								ID:   domain.ShapeID("shape-1"),
+								Type: domain.DiagramShapeTypeImage,
+								Img:  "image-1",
+								Pv:   "data:image/jpeg;base64,cHJldmlldw==",
+							},
+						},
+					}, nil)
+
+				embedSvc.EXPECT().
+					IncrementViews(mock.Anything, domain.EmbedID("embed-2")).
+					Return(nil)
+
+				return &EmbedPublic{
+					embedService:   embedSvc,
+					diagramService: diagramSvc,
+					log:            zap.NewNop(),
+				}
+			},
+			want: &oas.EmbedDataResponse{
+				DiagramInfo: oas.DiagramInfo{
+					ID:         oas.Ulid("diag-2"),
+					Title:      oas.DiagramTitle("Diagram"),
+					Permission: oas.DiagramCollaboratorPermissionEnumVIEW,
+					Shapes: []oas.DiagramShape{
+						{
+							ID:  oas.Ulid("shape-1"),
+							Tp:  oas.DiagramShapeTypeEnumI,
+							W:   100,
+							H:   100,
+							Ta:  oas.NewOptDiagramShapeTextAlignEnum(oas.DiagramShapeTextAlignEnumCenter),
+							Img: oas.NewOptString("image-1"),
+							Pv:  oas.NewOptString("data:image/jpeg;base64,cHJldmlldw=="),
+						},
+					},
+				},
+			},
+		},
+		{
 			name:   "Success - increment views fails but response returned",
 			params: oas.EmbedDataParams{Token: "embed-token-3"},
 			ctx:    context.Background,

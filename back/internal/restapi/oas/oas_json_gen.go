@@ -5316,9 +5316,21 @@ func (s *DiagramShape) encodeFields(e *jx.Encoder) {
 		e.FieldStart("o")
 		e.Str(s.O)
 	}
+	{
+		if s.Img.Set {
+			e.FieldStart("img")
+			s.Img.Encode(e)
+		}
+	}
+	{
+		if s.Pv.Set {
+			e.FieldStart("pv")
+			s.Pv.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfDiagramShape = [13]string{
+var jsonFieldsNameOfDiagramShape = [15]string{
 	0:  "id",
 	1:  "tp",
 	2:  "l",
@@ -5332,6 +5344,8 @@ var jsonFieldsNameOfDiagramShape = [13]string{
 	10: "txt",
 	11: "ta",
 	12: "o",
+	13: "img",
+	14: "pv",
 }
 
 // Decode decodes DiagramShape from json.
@@ -5492,6 +5506,26 @@ func (s *DiagramShape) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"o\"")
+			}
+		case "img":
+			if err := func() error {
+				s.Img.Reset()
+				if err := s.Img.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"img\"")
+			}
+		case "pv":
+			if err := func() error {
+				s.Pv.Reset()
+				if err := s.Pv.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"pv\"")
 			}
 		default:
 			return d.Skip()
@@ -5729,6 +5763,8 @@ func (s *DiagramShapeTypeEnum) Decode(d *jx.Decoder) error {
 		*s = DiagramShapeTypeEnumB
 	case DiagramShapeTypeEnumT:
 		*s = DiagramShapeTypeEnumT
+	case DiagramShapeTypeEnumI:
+		*s = DiagramShapeTypeEnumI
 	default:
 		*s = DiagramShapeTypeEnum(v)
 	}
@@ -6878,6 +6914,196 @@ func (s *EmbedGetUnauthorized) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *EmbedGetUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes EmbedImageGetBadRequest as json.
+func (s *EmbedImageGetBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*GeneralError)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes EmbedImageGetBadRequest from json.
+func (s *EmbedImageGetBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode EmbedImageGetBadRequest to nil")
+	}
+	var unwrapped GeneralError
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = EmbedImageGetBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *EmbedImageGetBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *EmbedImageGetBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes EmbedImageGetForbidden as json.
+func (s *EmbedImageGetForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*GeneralError)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes EmbedImageGetForbidden from json.
+func (s *EmbedImageGetForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode EmbedImageGetForbidden to nil")
+	}
+	var unwrapped GeneralError
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = EmbedImageGetForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *EmbedImageGetForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *EmbedImageGetForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes EmbedImageGetInternalServerError as json.
+func (s *EmbedImageGetInternalServerError) Encode(e *jx.Encoder) {
+	unwrapped := (*GeneralError)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes EmbedImageGetInternalServerError from json.
+func (s *EmbedImageGetInternalServerError) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode EmbedImageGetInternalServerError to nil")
+	}
+	var unwrapped GeneralError
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = EmbedImageGetInternalServerError(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *EmbedImageGetInternalServerError) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *EmbedImageGetInternalServerError) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes EmbedImageGetNotFound as json.
+func (s *EmbedImageGetNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*GeneralError)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes EmbedImageGetNotFound from json.
+func (s *EmbedImageGetNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode EmbedImageGetNotFound to nil")
+	}
+	var unwrapped GeneralError
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = EmbedImageGetNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *EmbedImageGetNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *EmbedImageGetNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes EmbedImageGetTooManyRequests as json.
+func (s *EmbedImageGetTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*GeneralError)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes EmbedImageGetTooManyRequests from json.
+func (s *EmbedImageGetTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode EmbedImageGetTooManyRequests to nil")
+	}
+	var unwrapped GeneralError
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = EmbedImageGetTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *EmbedImageGetTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *EmbedImageGetTooManyRequests) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -8142,6 +8368,679 @@ func (s *HealthReadyTooManyRequests) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *HealthReadyTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ImageGetBadRequest as json.
+func (s *ImageGetBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*GeneralError)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ImageGetBadRequest from json.
+func (s *ImageGetBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ImageGetBadRequest to nil")
+	}
+	var unwrapped GeneralError
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ImageGetBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ImageGetBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ImageGetBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ImageGetForbidden as json.
+func (s *ImageGetForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*GeneralError)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ImageGetForbidden from json.
+func (s *ImageGetForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ImageGetForbidden to nil")
+	}
+	var unwrapped GeneralError
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ImageGetForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ImageGetForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ImageGetForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ImageGetInternalServerError as json.
+func (s *ImageGetInternalServerError) Encode(e *jx.Encoder) {
+	unwrapped := (*GeneralError)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ImageGetInternalServerError from json.
+func (s *ImageGetInternalServerError) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ImageGetInternalServerError to nil")
+	}
+	var unwrapped GeneralError
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ImageGetInternalServerError(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ImageGetInternalServerError) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ImageGetInternalServerError) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ImageGetNotFound as json.
+func (s *ImageGetNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*GeneralError)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ImageGetNotFound from json.
+func (s *ImageGetNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ImageGetNotFound to nil")
+	}
+	var unwrapped GeneralError
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ImageGetNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ImageGetNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ImageGetNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ImageGetTooManyRequests as json.
+func (s *ImageGetTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*GeneralError)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ImageGetTooManyRequests from json.
+func (s *ImageGetTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ImageGetTooManyRequests to nil")
+	}
+	var unwrapped GeneralError
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ImageGetTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ImageGetTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ImageGetTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ImageGetUnauthorized as json.
+func (s *ImageGetUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*GeneralError)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ImageGetUnauthorized from json.
+func (s *ImageGetUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ImageGetUnauthorized to nil")
+	}
+	var unwrapped GeneralError
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ImageGetUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ImageGetUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ImageGetUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ImageUploadBadRequest as json.
+func (s *ImageUploadBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*GeneralError)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ImageUploadBadRequest from json.
+func (s *ImageUploadBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ImageUploadBadRequest to nil")
+	}
+	var unwrapped GeneralError
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ImageUploadBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ImageUploadBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ImageUploadBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ImageUploadForbidden as json.
+func (s *ImageUploadForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*GeneralError)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ImageUploadForbidden from json.
+func (s *ImageUploadForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ImageUploadForbidden to nil")
+	}
+	var unwrapped GeneralError
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ImageUploadForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ImageUploadForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ImageUploadForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ImageUploadInternalServerError as json.
+func (s *ImageUploadInternalServerError) Encode(e *jx.Encoder) {
+	unwrapped := (*GeneralError)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ImageUploadInternalServerError from json.
+func (s *ImageUploadInternalServerError) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ImageUploadInternalServerError to nil")
+	}
+	var unwrapped GeneralError
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ImageUploadInternalServerError(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ImageUploadInternalServerError) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ImageUploadInternalServerError) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ImageUploadNotFound as json.
+func (s *ImageUploadNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*GeneralError)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ImageUploadNotFound from json.
+func (s *ImageUploadNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ImageUploadNotFound to nil")
+	}
+	var unwrapped GeneralError
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ImageUploadNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ImageUploadNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ImageUploadNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ImageUploadRequestEntityTooLarge as json.
+func (s *ImageUploadRequestEntityTooLarge) Encode(e *jx.Encoder) {
+	unwrapped := (*GeneralError)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ImageUploadRequestEntityTooLarge from json.
+func (s *ImageUploadRequestEntityTooLarge) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ImageUploadRequestEntityTooLarge to nil")
+	}
+	var unwrapped GeneralError
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ImageUploadRequestEntityTooLarge(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ImageUploadRequestEntityTooLarge) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ImageUploadRequestEntityTooLarge) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ImageUploadResponse) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ImageUploadResponse) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("id")
+		s.ID.Encode(e)
+	}
+	{
+		e.FieldStart("originalName")
+		e.Str(s.OriginalName)
+	}
+	{
+		e.FieldStart("mime")
+		e.Str(s.Mime)
+	}
+	{
+		e.FieldStart("width")
+		e.Int32(s.Width)
+	}
+	{
+		e.FieldStart("height")
+		e.Int32(s.Height)
+	}
+	{
+		e.FieldStart("pv")
+		e.Str(s.Pv)
+	}
+}
+
+var jsonFieldsNameOfImageUploadResponse = [6]string{
+	0: "id",
+	1: "originalName",
+	2: "mime",
+	3: "width",
+	4: "height",
+	5: "pv",
+}
+
+// Decode decodes ImageUploadResponse from json.
+func (s *ImageUploadResponse) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ImageUploadResponse to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "id":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.ID.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"id\"")
+			}
+		case "originalName":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.OriginalName = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"originalName\"")
+			}
+		case "mime":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Str()
+				s.Mime = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"mime\"")
+			}
+		case "width":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int32()
+				s.Width = int32(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"width\"")
+			}
+		case "height":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int32()
+				s.Height = int32(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"height\"")
+			}
+		case "pv":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Str()
+				s.Pv = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"pv\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ImageUploadResponse")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfImageUploadResponse) {
+					name = jsonFieldsNameOfImageUploadResponse[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ImageUploadResponse) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ImageUploadResponse) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ImageUploadTooManyRequests as json.
+func (s *ImageUploadTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*GeneralError)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ImageUploadTooManyRequests from json.
+func (s *ImageUploadTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ImageUploadTooManyRequests to nil")
+	}
+	var unwrapped GeneralError
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ImageUploadTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ImageUploadTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ImageUploadTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ImageUploadUnauthorized as json.
+func (s *ImageUploadUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*GeneralError)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ImageUploadUnauthorized from json.
+func (s *ImageUploadUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ImageUploadUnauthorized to nil")
+	}
+	var unwrapped GeneralError
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ImageUploadUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ImageUploadUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ImageUploadUnauthorized) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

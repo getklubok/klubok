@@ -42,6 +42,19 @@ var allEnvList = []string{ //nolint:gochecknoglobals // it's ok
 	"MAILER_FROM",
 	"MAILER_SEND_INTERVAL",
 	"MAILER_CHANNEL_BUFFER_SIZE",
+	"STORAGE_PROVIDER",
+	"STORAGE_LOCAL_PATH",
+	"STORAGE_S3_ENDPOINT",
+	"STORAGE_S3_REGION",
+	"STORAGE_S3_BUCKET",
+	"STORAGE_S3_ACCESS_KEY",
+	"STORAGE_S3_SECRET_KEY",
+	"STORAGE_S3_FORCE_PATH_STYLE",
+	"STORAGE_S3_PREFIX",
+	"IMAGE_MAX_FILE_SIZE",
+	"IMAGE_MAX_PIXELS",
+	"IMAGE_PREVIEW_MAX_SIDE_PX",
+	"IMAGE_FULLSCREEN_MAX_SIDE_PX",
 	"METRICS_PORT",
 	"METRICS_READ_TIMEOUT",
 	"METRICS_READ_HEADER_TIMEOUT",
@@ -125,6 +138,21 @@ func TestLoadConfiguration(t *testing.T) {
 				t.Setenv("MAILER_FROM", "from@localhost.tld")
 				t.Setenv("MAILER_SEND_INTERVAL", "500ms")
 				t.Setenv("MAILER_CHANNEL_BUFFER_SIZE", "100")
+
+				t.Setenv("STORAGE_PROVIDER", "s3")
+				t.Setenv("STORAGE_LOCAL_PATH", "/tmp/klubok-storage")
+				t.Setenv("STORAGE_S3_ENDPOINT", "https://storage.example.tld")
+				t.Setenv("STORAGE_S3_REGION", "us-east-1")
+				t.Setenv("STORAGE_S3_BUCKET", "klubok")
+				t.Setenv("STORAGE_S3_ACCESS_KEY", "access-key")
+				t.Setenv("STORAGE_S3_SECRET_KEY", "secret-key")
+				t.Setenv("STORAGE_S3_FORCE_PATH_STYLE", "true")
+				t.Setenv("STORAGE_S3_PREFIX", "images")
+
+				t.Setenv("IMAGE_MAX_FILE_SIZE", "1048576")
+				t.Setenv("IMAGE_MAX_PIXELS", "1000000")
+				t.Setenv("IMAGE_PREVIEW_MAX_SIDE_PX", "128")
+				t.Setenv("IMAGE_FULLSCREEN_MAX_SIDE_PX", "1024")
 
 				t.Setenv("METRICS_PORT", "8080")
 
@@ -216,6 +244,27 @@ func TestLoadConfiguration(t *testing.T) {
 					SendInterval:      500 * time.Millisecond,
 					ChannelBufferSize: 100,
 				},
+				Storage: Storage{
+					Provider: "s3",
+					Local: StorageLocal{
+						Path: "/tmp/klubok-storage",
+					},
+					S3: StorageS3{
+						Endpoint:       "https://storage.example.tld",
+						Region:         "us-east-1",
+						Bucket:         "klubok",
+						AccessKey:      "access-key",
+						SecretKey:      "secret-key",
+						ForcePathStyle: true,
+						Prefix:         "images",
+					},
+				},
+				Images: Images{
+					MaxFileSizeBytes:    1048576,
+					MaxPixels:           1000000,
+					PreviewMaxSidePx:    128,
+					FullscreenMaxSidePx: 1024,
+				},
 				Metrics: Metrics{
 					Port: 8080,
 
@@ -281,6 +330,7 @@ func TestLoadConfiguration(t *testing.T) {
 				t.Setenv("MAILER_USERNAME", "username")
 				t.Setenv("MAILER_PASSWORD", "password")
 				t.Setenv("MAILER_FROM", "from@localhost.tld")
+				t.Setenv("STORAGE_LOCAL_PATH", "/tmp/klubok-storage")
 			},
 			want: &Configuration{
 				Environment: "prod",
@@ -321,6 +371,18 @@ func TestLoadConfiguration(t *testing.T) {
 					From:              "from@localhost.tld",
 					SendInterval:      1 * time.Second,
 					ChannelBufferSize: 100,
+				},
+				Storage: Storage{
+					Provider: "local",
+					Local: StorageLocal{
+						Path: "/tmp/klubok-storage",
+					},
+				},
+				Images: Images{
+					MaxFileSizeBytes:    2097152,
+					MaxPixels:           12000000,
+					PreviewMaxSidePx:    250,
+					FullscreenMaxSidePx: 2048,
 				},
 				Metrics: Metrics{
 					Port: 6060,
@@ -368,6 +430,257 @@ func TestLoadConfiguration(t *testing.T) {
 	}
 }
 
+func TestStorage_LoadConfiguration(t *testing.T) {
+	tests := []struct {
+		name    string
+		setEnv  func(t *testing.T)
+		want    Storage
+		wantErr string
+	}{
+		{
+			name:   "Should use local storage by default",
+			setEnv: func(t *testing.T) { t.Helper() },
+			want: Storage{
+				Provider: "local",
+				Local:    StorageLocal{Path: "/tmp/klubok-storage"},
+			},
+		},
+		{
+			name: "Should load s3 storage with static credentials",
+			setEnv: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("STORAGE_PROVIDER", "s3")
+				t.Setenv("STORAGE_S3_ENDPOINT", "https://storage.example.tld")
+				t.Setenv("STORAGE_S3_REGION", "us-east-1")
+				t.Setenv("STORAGE_S3_BUCKET", "klubok")
+				t.Setenv("STORAGE_S3_ACCESS_KEY", "access-key")
+				t.Setenv("STORAGE_S3_SECRET_KEY", "secret-key")
+				t.Setenv("STORAGE_S3_FORCE_PATH_STYLE", "true")
+				t.Setenv("STORAGE_S3_PREFIX", "images")
+			},
+			want: Storage{
+				Provider: "s3",
+				Local:    StorageLocal{Path: "/tmp/klubok-storage"},
+				S3: StorageS3{
+					Endpoint:       "https://storage.example.tld",
+					Region:         "us-east-1",
+					Bucket:         "klubok",
+					AccessKey:      "access-key",
+					SecretKey:      "secret-key",
+					ForcePathStyle: true,
+					Prefix:         "images",
+				},
+			},
+		},
+		{
+			name: "Should load s3 storage without static credentials",
+			setEnv: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("STORAGE_PROVIDER", "s3")
+				t.Setenv("STORAGE_S3_ENDPOINT", "https://storage.example.tld")
+				t.Setenv("STORAGE_S3_REGION", "us-east-1")
+				t.Setenv("STORAGE_S3_BUCKET", "klubok")
+			},
+			want: Storage{
+				Provider: "s3",
+				Local:    StorageLocal{Path: "/tmp/klubok-storage"},
+				S3: StorageS3{
+					Endpoint: "https://storage.example.tld",
+					Region:   "us-east-1",
+					Bucket:   "klubok",
+				},
+			},
+		},
+		{
+			name: "Should start with local provider despite s3 parameters",
+			setEnv: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("STORAGE_S3_ENDPOINT", "https://storage.example.tld")
+				t.Setenv("STORAGE_S3_ACCESS_KEY", "access-key")
+			},
+			want: Storage{
+				Provider: "local",
+				Local:    StorageLocal{Path: "/tmp/klubok-storage"},
+				S3: StorageS3{
+					Endpoint:  "https://storage.example.tld",
+					AccessKey: "access-key",
+				},
+			},
+		},
+		{
+			name: "Should fail on unknown provider",
+			setEnv: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("STORAGE_PROVIDER", "ftp")
+			},
+			wantErr: `validate storage: unknown storage provider "ftp"`,
+		},
+		{
+			name: "Should fail on local storage without path",
+			setEnv: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("STORAGE_LOCAL_PATH", "")
+			},
+			wantErr: "validate storage: STORAGE_LOCAL_PATH is empty while STORAGE_PROVIDER=local",
+		},
+		{
+			name: "Should fail on s3 storage without endpoint",
+			setEnv: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("STORAGE_PROVIDER", "s3")
+			},
+			wantErr: "validate storage: STORAGE_S3_ENDPOINT is empty while STORAGE_PROVIDER=s3",
+		},
+		{
+			name: "Should fail on s3 storage without region",
+			setEnv: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("STORAGE_PROVIDER", "s3")
+				t.Setenv("STORAGE_S3_ENDPOINT", "https://storage.example.tld")
+			},
+			wantErr: "validate storage: STORAGE_S3_REGION is empty while STORAGE_PROVIDER=s3",
+		},
+		{
+			name: "Should fail on s3 storage without bucket",
+			setEnv: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("STORAGE_PROVIDER", "s3")
+				t.Setenv("STORAGE_S3_ENDPOINT", "https://storage.example.tld")
+				t.Setenv("STORAGE_S3_REGION", "us-east-1")
+			},
+			wantErr: "validate storage: STORAGE_S3_BUCKET is empty while STORAGE_PROVIDER=s3",
+		},
+		{
+			name: "Should fail on s3 storage with only access key",
+			setEnv: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("STORAGE_PROVIDER", "s3")
+				t.Setenv("STORAGE_S3_ENDPOINT", "https://storage.example.tld")
+				t.Setenv("STORAGE_S3_REGION", "us-east-1")
+				t.Setenv("STORAGE_S3_BUCKET", "klubok")
+				t.Setenv("STORAGE_S3_ACCESS_KEY", "access-key")
+			},
+			wantErr: "validate storage: STORAGE_S3_ACCESS_KEY and STORAGE_S3_SECRET_KEY must be set together",
+		},
+		{
+			name: "Should fail on s3 storage with only secret key",
+			setEnv: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("STORAGE_PROVIDER", "s3")
+				t.Setenv("STORAGE_S3_ENDPOINT", "https://storage.example.tld")
+				t.Setenv("STORAGE_S3_REGION", "us-east-1")
+				t.Setenv("STORAGE_S3_BUCKET", "klubok")
+				t.Setenv("STORAGE_S3_SECRET_KEY", "secret-key")
+			},
+			wantErr: "validate storage: STORAGE_S3_ACCESS_KEY and STORAGE_S3_SECRET_KEY must be set together",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resetConfigEnv(t)
+			setValidBaseEnv(t)
+			tt.setEnv(t)
+
+			got, err := LoadConfiguration()
+			if tt.wantErr != "" {
+				assert.EqualError(t, err, tt.wantErr)
+
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got.Storage)
+		})
+	}
+}
+
+func TestImages_LoadConfiguration(t *testing.T) {
+	tests := []struct {
+		name    string
+		setEnv  func(t *testing.T)
+		want    Images
+		wantErr string
+	}{
+		{
+			name:   "Should load default image limits",
+			setEnv: func(t *testing.T) { t.Helper() },
+			want: Images{
+				MaxFileSizeBytes:    2097152,
+				MaxPixels:           12000000,
+				PreviewMaxSidePx:    250,
+				FullscreenMaxSidePx: 2048,
+			},
+		},
+		{
+			name: "Should load custom image limits",
+			setEnv: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("IMAGE_MAX_FILE_SIZE", "1048576")
+				t.Setenv("IMAGE_MAX_PIXELS", "1000000")
+				t.Setenv("IMAGE_PREVIEW_MAX_SIDE_PX", "128")
+				t.Setenv("IMAGE_FULLSCREEN_MAX_SIDE_PX", "1024")
+			},
+			want: Images{
+				MaxFileSizeBytes:    1048576,
+				MaxPixels:           1000000,
+				PreviewMaxSidePx:    128,
+				FullscreenMaxSidePx: 1024,
+			},
+		},
+		{
+			name: "Should fail on zero file size",
+			setEnv: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("IMAGE_MAX_FILE_SIZE", "0")
+			},
+			wantErr: "validate images: IMAGE_MAX_FILE_SIZE must be positive",
+		},
+		{
+			name: "Should fail on zero max pixels",
+			setEnv: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("IMAGE_MAX_PIXELS", "0")
+			},
+			wantErr: "validate images: IMAGE_MAX_PIXELS must be positive",
+		},
+		{
+			name: "Should fail on zero preview side",
+			setEnv: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("IMAGE_PREVIEW_MAX_SIDE_PX", "0")
+			},
+			wantErr: "validate images: IMAGE_PREVIEW_MAX_SIDE_PX must be positive",
+		},
+		{
+			name: "Should fail on zero fullscreen side",
+			setEnv: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("IMAGE_FULLSCREEN_MAX_SIDE_PX", "0")
+			},
+			wantErr: "validate images: IMAGE_FULLSCREEN_MAX_SIDE_PX must be positive",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resetConfigEnv(t)
+			setValidBaseEnv(t)
+			tt.setEnv(t)
+
+			got, err := LoadConfiguration()
+			if tt.wantErr != "" {
+				assert.EqualError(t, err, tt.wantErr)
+
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got.Images)
+		})
+	}
+}
+
 func TestAllowedEmailDomains_LoadConfiguration(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -392,6 +705,7 @@ func TestAllowedEmailDomains_LoadConfiguration(t *testing.T) {
 				t.Setenv("MAILER_USERNAME", "username")
 				t.Setenv("MAILER_PASSWORD", "password")
 				t.Setenv("MAILER_FROM", "from@localhost.tld")
+				t.Setenv("STORAGE_LOCAL_PATH", "/tmp/klubok-storage")
 				t.Setenv("FEATURE_ALLOWED_EMAIL_DOMAINS_ENABLED", "true")
 				t.Setenv("FEATURE_ALLOWED_EMAIL_DOMAINS_LIST", " example.com , Corp.Example.com , ")
 			},
@@ -418,6 +732,7 @@ func TestAllowedEmailDomains_LoadConfiguration(t *testing.T) {
 				t.Setenv("MAILER_USERNAME", "username")
 				t.Setenv("MAILER_PASSWORD", "password")
 				t.Setenv("MAILER_FROM", "from@localhost.tld")
+				t.Setenv("STORAGE_LOCAL_PATH", "/tmp/klubok-storage")
 				t.Setenv("FEATURE_ALLOWED_EMAIL_DOMAINS_ENABLED", "true")
 			},
 			want:    AllowedEmailDomains{},
@@ -440,6 +755,7 @@ func TestAllowedEmailDomains_LoadConfiguration(t *testing.T) {
 				t.Setenv("MAILER_USERNAME", "username")
 				t.Setenv("MAILER_PASSWORD", "password")
 				t.Setenv("MAILER_FROM", "from@localhost.tld")
+				t.Setenv("STORAGE_LOCAL_PATH", "/tmp/klubok-storage")
 				t.Setenv("FEATURE_ALLOWED_EMAIL_DOMAINS_ENABLED", "false")
 			},
 			want: AllowedEmailDomains{
@@ -479,6 +795,7 @@ func TestAuth_LoadConfiguration(t *testing.T) {
 		t.Setenv("MAILER_USERNAME", "username")
 		t.Setenv("MAILER_PASSWORD", "password")
 		t.Setenv("MAILER_FROM", "from@localhost.tld")
+		t.Setenv("STORAGE_LOCAL_PATH", "/tmp/klubok-storage")
 	}
 
 	setValidSSO := func(t *testing.T) {
@@ -678,6 +995,7 @@ func TestMailer_LoadConfiguration(t *testing.T) {
 		t.Setenv("POSTGRES_USER", "postgres")
 		t.Setenv("POSTGRES_PASSWORD", "password")
 		t.Setenv("POSTGRES_DB", "klubok_db")
+		t.Setenv("STORAGE_LOCAL_PATH", "/tmp/klubok-storage")
 	}
 
 	setValidMailerEnv := func(t *testing.T) {
@@ -1099,6 +1417,7 @@ func TestLoadConfiguration_SSOLoginRedirectURL(t *testing.T) {
 		t.Setenv("MAILER_USERNAME", "username")
 		t.Setenv("MAILER_PASSWORD", "password")
 		t.Setenv("MAILER_FROM", "from@localhost.tld")
+		t.Setenv("STORAGE_LOCAL_PATH", "/tmp/klubok-storage")
 	}
 
 	setValidSSO := func(t *testing.T) {
@@ -1167,6 +1486,26 @@ func TestLoadConfiguration_SSOLoginRedirectURL(t *testing.T) {
 			assert.Equal(t, tt.wantURL, got.AppBaseURL)
 		})
 	}
+}
+
+// setValidBaseEnv задаёт минимальный набор обязательных переменных для LoadConfiguration.
+func setValidBaseEnv(t *testing.T) {
+	t.Helper()
+
+	t.Setenv("APP_BASE_URL", "https://domain.tld")
+	t.Setenv("HTTP_CORS_ALLOW_ORIGINS", "http://localhost:5173")
+	t.Setenv("COOKIE_DOMAIN", "localhost")
+	t.Setenv("POSTGRES_HOST", "localhost")
+	t.Setenv("POSTGRES_PORT", "5432")
+	t.Setenv("POSTGRES_USER", "postgres")
+	t.Setenv("POSTGRES_PASSWORD", "password")
+	t.Setenv("POSTGRES_DB", "klubok_db")
+	t.Setenv("MAILER_HOST", "localhost")
+	t.Setenv("MAILER_PORT", "25")
+	t.Setenv("MAILER_USERNAME", "username")
+	t.Setenv("MAILER_PASSWORD", "password")
+	t.Setenv("MAILER_FROM", "from@localhost.tld")
+	t.Setenv("STORAGE_LOCAL_PATH", "/tmp/klubok-storage")
 }
 
 // resetConfigEnv сбрасывает переменные окружения конфига, которые могут быть унаследованы

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"io"
 	"net/http"
 
 	"github.com/hashicorp/golang-lru/v2/expirable"
@@ -11,6 +12,7 @@ import (
 	"klubok/internal/application/service/cookie"
 	"klubok/internal/application/service/diagram"
 	"klubok/internal/application/service/embed"
+	"klubok/internal/application/service/image"
 	"klubok/internal/application/service/permission"
 	"klubok/internal/application/service/session"
 	usr "klubok/internal/application/service/user"
@@ -144,3 +146,10 @@ type EmbedService interface {
 }
 
 var _ EmbedService = (*embed.Service)(nil)
+
+type ImageService interface {
+	Upload(ctx context.Context, diagramID domain.DiagramID, originalName string, body io.Reader) (image.UploadResult, error)
+	Open(ctx context.Context, diagramID domain.DiagramID, imageID domain.ImageID, variant image.Variant) (image.File, error)
+}
+
+var _ ImageService = (*image.Service)(nil)

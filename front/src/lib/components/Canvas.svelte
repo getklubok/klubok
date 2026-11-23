@@ -16,6 +16,7 @@
     import DebugPanel from './DebugPanel.svelte';
     import GroupPanel from './GroupPanel.svelte';
     import ContextMenu from './ContextMenu.svelte';
+    import ImageViewer from './ImageViewer.svelte';
 
     import { textEditorManager } from '../services/TextEditorManager';
     import { commentBadgeManager } from '../services/CommentBadgeManager';
@@ -59,6 +60,21 @@
         if (!el) return false;
 
         return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable;
+    }
+
+    // Изображение из drag&drop: берём только первый файл и ставим его в точку курсора.
+    function handleDragOver(event: DragEvent) {
+        event.preventDefault();
+    }
+
+    function handleDrop(event: DragEvent) {
+        event.preventDefault();
+        if (!hasPermission(diagramInfo?.permission)) return;
+
+        const file = event.dataTransfer?.files?.[0];
+        if (!file) return;
+
+        canvasManager.uploadImage(file, canvas.getScenePoint(event));
     }
 
     // Фон канваса берём из CSS-переменной темы (--diagram-bg), а не дублируем палитру в JS.
@@ -200,7 +216,7 @@
     });
 </script>
 
-<div id="canvas-container">
+<div id="canvas-container" role="presentation" ondragover={handleDragOver} ondrop={handleDrop}>
     <canvas bind:this={canvasElement}></canvas>
 
     <nav class="navbar">
@@ -223,11 +239,13 @@
 
     {#if $selectedObject !== null && $selectedObject?.name !== ''}
         <div class="group-panel">
-            <GroupPanel permission={diagramInfo?.permission} />
+            <GroupPanel permission={diagramInfo?.permission} diagramId={currentDiagramId} />
         </div>
     {/if}
 
     <DebugPanel />
+
+    <ImageViewer />
 
     {#if $commentsShow && $commentsSelectedGroup}
         <Comments diagramId={currentDiagramId} />
@@ -239,6 +257,7 @@
             y={$contextMenu.y}
             target={$contextMenu.target}
             permission={diagramInfo?.permission}
+            diagramId={currentDiagramId}
             onClose={() => contextMenu.set({ visible: false, x: 0, y: 0, target: null })}
         />
     {/if}

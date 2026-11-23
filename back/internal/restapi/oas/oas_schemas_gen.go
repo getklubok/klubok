@@ -3,9 +3,11 @@
 package oas
 
 import (
+	"io"
 	"time"
 
 	"github.com/go-faster/errors"
+	ht "github.com/ogen-go/ogen/http"
 )
 
 type CollaboratorDeleteForbidden GeneralError
@@ -1013,11 +1015,15 @@ type DiagramShape struct {
 	Fc string `json:"fc"`
 	// Stroke color. Accepts HEX color code or "transparent".
 	Sc string `json:"sc"`
-	// Text.
+	// Text. Image shape gets placeholder text from the client.
 	Txt string                       `json:"txt"`
 	Ta  OptDiagramShapeTextAlignEnum `json:"ta"`
 	// Order key for layering.
 	O string `json:"o"`
+	// Image ID for IMAGE shape. Empty for other types.
+	Img OptString `json:"img"`
+	// Image preview data URL for IMAGE shape. Server-side read-only.
+	Pv OptString `json:"pv"`
 }
 
 // GetID returns the value of ID.
@@ -1085,6 +1091,16 @@ func (s *DiagramShape) GetO() string {
 	return s.O
 }
 
+// GetImg returns the value of Img.
+func (s *DiagramShape) GetImg() OptString {
+	return s.Img
+}
+
+// GetPv returns the value of Pv.
+func (s *DiagramShape) GetPv() OptString {
+	return s.Pv
+}
+
 // SetID sets the value of ID.
 func (s *DiagramShape) SetID(val Ulid) {
 	s.ID = val
@@ -1148,6 +1164,16 @@ func (s *DiagramShape) SetTa(val OptDiagramShapeTextAlignEnum) {
 // SetO sets the value of O.
 func (s *DiagramShape) SetO(val string) {
 	s.O = val
+}
+
+// SetImg sets the value of Img.
+func (s *DiagramShape) SetImg(val OptString) {
+	s.Img = val
+}
+
+// SetPv sets the value of Pv.
+func (s *DiagramShape) SetPv(val OptString) {
+	s.Pv = val
 }
 
 // Ref: #/components/schemas/DiagramShapeCommentStats
@@ -1235,6 +1261,7 @@ const (
 	DiagramShapeTypeEnumD DiagramShapeTypeEnum = "D"
 	DiagramShapeTypeEnumB DiagramShapeTypeEnum = "B"
 	DiagramShapeTypeEnumT DiagramShapeTypeEnum = "T"
+	DiagramShapeTypeEnumI DiagramShapeTypeEnum = "I"
 )
 
 // AllValues returns all DiagramShapeTypeEnum values.
@@ -1245,6 +1272,7 @@ func (DiagramShapeTypeEnum) AllValues() []DiagramShapeTypeEnum {
 		DiagramShapeTypeEnumD,
 		DiagramShapeTypeEnumB,
 		DiagramShapeTypeEnumT,
+		DiagramShapeTypeEnumI,
 	}
 }
 
@@ -1260,6 +1288,8 @@ func (s DiagramShapeTypeEnum) MarshalText() ([]byte, error) {
 	case DiagramShapeTypeEnumB:
 		return []byte(s), nil
 	case DiagramShapeTypeEnumT:
+		return []byte(s), nil
+	case DiagramShapeTypeEnumI:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -1283,6 +1313,9 @@ func (s *DiagramShapeTypeEnum) UnmarshalText(data []byte) error {
 		return nil
 	case DiagramShapeTypeEnumT:
 		*s = DiagramShapeTypeEnumT
+		return nil
+	case DiagramShapeTypeEnumI:
+		*s = DiagramShapeTypeEnumI
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -1430,6 +1463,26 @@ func (*EmbedGetTooManyRequests) embedGetRes() {}
 type EmbedGetUnauthorized GeneralError
 
 func (*EmbedGetUnauthorized) embedGetRes() {}
+
+type EmbedImageGetBadRequest GeneralError
+
+func (*EmbedImageGetBadRequest) embedImageGetRes() {}
+
+type EmbedImageGetForbidden GeneralError
+
+func (*EmbedImageGetForbidden) embedImageGetRes() {}
+
+type EmbedImageGetInternalServerError GeneralError
+
+func (*EmbedImageGetInternalServerError) embedImageGetRes() {}
+
+type EmbedImageGetNotFound GeneralError
+
+func (*EmbedImageGetNotFound) embedImageGetRes() {}
+
+type EmbedImageGetTooManyRequests GeneralError
+
+func (*EmbedImageGetTooManyRequests) embedImageGetRes() {}
 
 // Ref: #/components/schemas/EmbedInfo
 type EmbedInfo struct {
@@ -1718,6 +1771,302 @@ type HealthReadyTooManyRequests GeneralError
 
 func (*HealthReadyTooManyRequests) healthReadyRes() {}
 
+type ImageGetBadRequest GeneralError
+
+func (*ImageGetBadRequest) imageGetRes() {}
+
+type ImageGetForbidden GeneralError
+
+func (*ImageGetForbidden) imageGetRes() {}
+
+type ImageGetInternalServerError GeneralError
+
+func (*ImageGetInternalServerError) imageGetRes() {}
+
+type ImageGetNotFound GeneralError
+
+func (*ImageGetNotFound) imageGetRes() {}
+
+type ImageGetTooManyRequests GeneralError
+
+func (*ImageGetTooManyRequests) imageGetRes() {}
+
+type ImageGetUnauthorized GeneralError
+
+func (*ImageGetUnauthorized) imageGetRes() {}
+
+type ImageUploadBadRequest GeneralError
+
+func (*ImageUploadBadRequest) imageUploadRes() {}
+
+type ImageUploadForbidden GeneralError
+
+func (*ImageUploadForbidden) imageUploadRes() {}
+
+type ImageUploadInternalServerError GeneralError
+
+func (*ImageUploadInternalServerError) imageUploadRes() {}
+
+type ImageUploadNotFound GeneralError
+
+func (*ImageUploadNotFound) imageUploadRes() {}
+
+type ImageUploadReq struct {
+	// PNG or JPEG image.
+	File ht.MultipartFile `json:"file"`
+}
+
+// GetFile returns the value of File.
+func (s *ImageUploadReq) GetFile() ht.MultipartFile {
+	return s.File
+}
+
+// SetFile sets the value of File.
+func (s *ImageUploadReq) SetFile(val ht.MultipartFile) {
+	s.File = val
+}
+
+type ImageUploadRequestEntityTooLarge GeneralError
+
+func (*ImageUploadRequestEntityTooLarge) imageUploadRes() {}
+
+// Ref: #/components/schemas/ImageUploadResponse
+type ImageUploadResponse struct {
+	ID Ulid `json:"id"`
+	// Sanitized original file name.
+	OriginalName string `json:"originalName"`
+	// Detected MIME type, image/png or image/jpeg.
+	Mime string `json:"mime"`
+	// Original image width in pixels.
+	Width int32 `json:"width"`
+	// Original image height in pixels.
+	Height int32 `json:"height"`
+	// Preview as data URL.
+	Pv string `json:"pv"`
+}
+
+// GetID returns the value of ID.
+func (s *ImageUploadResponse) GetID() Ulid {
+	return s.ID
+}
+
+// GetOriginalName returns the value of OriginalName.
+func (s *ImageUploadResponse) GetOriginalName() string {
+	return s.OriginalName
+}
+
+// GetMime returns the value of Mime.
+func (s *ImageUploadResponse) GetMime() string {
+	return s.Mime
+}
+
+// GetWidth returns the value of Width.
+func (s *ImageUploadResponse) GetWidth() int32 {
+	return s.Width
+}
+
+// GetHeight returns the value of Height.
+func (s *ImageUploadResponse) GetHeight() int32 {
+	return s.Height
+}
+
+// GetPv returns the value of Pv.
+func (s *ImageUploadResponse) GetPv() string {
+	return s.Pv
+}
+
+// SetID sets the value of ID.
+func (s *ImageUploadResponse) SetID(val Ulid) {
+	s.ID = val
+}
+
+// SetOriginalName sets the value of OriginalName.
+func (s *ImageUploadResponse) SetOriginalName(val string) {
+	s.OriginalName = val
+}
+
+// SetMime sets the value of Mime.
+func (s *ImageUploadResponse) SetMime(val string) {
+	s.Mime = val
+}
+
+// SetWidth sets the value of Width.
+func (s *ImageUploadResponse) SetWidth(val int32) {
+	s.Width = val
+}
+
+// SetHeight sets the value of Height.
+func (s *ImageUploadResponse) SetHeight(val int32) {
+	s.Height = val
+}
+
+// SetPv sets the value of Pv.
+func (s *ImageUploadResponse) SetPv(val string) {
+	s.Pv = val
+}
+
+func (*ImageUploadResponse) imageUploadRes() {}
+
+type ImageUploadTooManyRequests GeneralError
+
+func (*ImageUploadTooManyRequests) imageUploadRes() {}
+
+type ImageUploadUnauthorized GeneralError
+
+func (*ImageUploadUnauthorized) imageUploadRes() {}
+
+// - full: FULLSCREEN
+// - download: ORIGINAL.
+// Ref: #/components/schemas/ImageVariantEnum
+type ImageVariantEnum string
+
+const (
+	ImageVariantEnumFull     ImageVariantEnum = "full"
+	ImageVariantEnumDownload ImageVariantEnum = "download"
+)
+
+// AllValues returns all ImageVariantEnum values.
+func (ImageVariantEnum) AllValues() []ImageVariantEnum {
+	return []ImageVariantEnum{
+		ImageVariantEnumFull,
+		ImageVariantEnumDownload,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ImageVariantEnum) MarshalText() ([]byte, error) {
+	switch s {
+	case ImageVariantEnumFull:
+		return []byte(s), nil
+	case ImageVariantEnumDownload:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ImageVariantEnum) UnmarshalText(data []byte) error {
+	switch ImageVariantEnum(data) {
+	case ImageVariantEnumFull:
+		*s = ImageVariantEnumFull
+		return nil
+	case ImageVariantEnumDownload:
+		*s = ImageVariantEnumDownload
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ImageVariantsImageJpeg struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s ImageVariantsImageJpeg) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+// ImageVariantsImageJpegHeaders wraps ImageVariantsImageJpeg with response headers.
+type ImageVariantsImageJpegHeaders struct {
+	ContentDisposition OptString
+	ContentLength      OptInt64
+	Response           ImageVariantsImageJpeg
+}
+
+// GetContentDisposition returns the value of ContentDisposition.
+func (s *ImageVariantsImageJpegHeaders) GetContentDisposition() OptString {
+	return s.ContentDisposition
+}
+
+// GetContentLength returns the value of ContentLength.
+func (s *ImageVariantsImageJpegHeaders) GetContentLength() OptInt64 {
+	return s.ContentLength
+}
+
+// GetResponse returns the value of Response.
+func (s *ImageVariantsImageJpegHeaders) GetResponse() ImageVariantsImageJpeg {
+	return s.Response
+}
+
+// SetContentDisposition sets the value of ContentDisposition.
+func (s *ImageVariantsImageJpegHeaders) SetContentDisposition(val OptString) {
+	s.ContentDisposition = val
+}
+
+// SetContentLength sets the value of ContentLength.
+func (s *ImageVariantsImageJpegHeaders) SetContentLength(val OptInt64) {
+	s.ContentLength = val
+}
+
+// SetResponse sets the value of Response.
+func (s *ImageVariantsImageJpegHeaders) SetResponse(val ImageVariantsImageJpeg) {
+	s.Response = val
+}
+
+func (*ImageVariantsImageJpegHeaders) embedImageGetRes() {}
+func (*ImageVariantsImageJpegHeaders) imageGetRes()      {}
+
+type ImageVariantsImagePNG struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s ImageVariantsImagePNG) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+// ImageVariantsImagePNGHeaders wraps ImageVariantsImagePNG with response headers.
+type ImageVariantsImagePNGHeaders struct {
+	ContentDisposition OptString
+	ContentLength      OptInt64
+	Response           ImageVariantsImagePNG
+}
+
+// GetContentDisposition returns the value of ContentDisposition.
+func (s *ImageVariantsImagePNGHeaders) GetContentDisposition() OptString {
+	return s.ContentDisposition
+}
+
+// GetContentLength returns the value of ContentLength.
+func (s *ImageVariantsImagePNGHeaders) GetContentLength() OptInt64 {
+	return s.ContentLength
+}
+
+// GetResponse returns the value of Response.
+func (s *ImageVariantsImagePNGHeaders) GetResponse() ImageVariantsImagePNG {
+	return s.Response
+}
+
+// SetContentDisposition sets the value of ContentDisposition.
+func (s *ImageVariantsImagePNGHeaders) SetContentDisposition(val OptString) {
+	s.ContentDisposition = val
+}
+
+// SetContentLength sets the value of ContentLength.
+func (s *ImageVariantsImagePNGHeaders) SetContentLength(val OptInt64) {
+	s.ContentLength = val
+}
+
+// SetResponse sets the value of Response.
+func (s *ImageVariantsImagePNGHeaders) SetResponse(val ImageVariantsImagePNG) {
+	s.Response = val
+}
+
+func (*ImageVariantsImagePNGHeaders) embedImageGetRes() {}
+func (*ImageVariantsImagePNGHeaders) imageGetRes()      {}
+
 // Ref: #/components/schemas/IndexResponse
 type IndexResponse struct {
 	Name string `json:"name"`
@@ -1847,6 +2196,52 @@ func (o OptDiagramShapeTextAlignEnum) Get() (v DiagramShapeTextAlignEnum, ok boo
 
 // Or returns value if set, or given parameter if does not.
 func (o OptDiagramShapeTextAlignEnum) Or(d DiagramShapeTextAlignEnum) DiagramShapeTextAlignEnum {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptInt64 returns new OptInt64 with value set to v.
+func NewOptInt64(v int64) OptInt64 {
+	return OptInt64{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptInt64 is optional int64.
+type OptInt64 struct {
+	Value int64
+	Set   bool
+}
+
+// IsSet returns true if OptInt64 was set.
+func (o OptInt64) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptInt64) Reset() {
+	var v int64
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptInt64) SetTo(v int64) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptInt64) Get() (v int64, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptInt64) Or(d int64) int64 {
 	if v, ok := o.Get(); ok {
 		return v
 	}

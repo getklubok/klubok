@@ -15,6 +15,7 @@
         faFileExport,
         faBoxOpen,
         faT,
+        faImage,
     } from '@fortawesome/free-solid-svg-icons';
 
     import { drawingMode, type DrawingMode } from '../stores';
@@ -39,6 +40,16 @@
     // Функция для установки режима рисования
     function setDrawingMode(mode: DrawingMode) {
         drawingMode.set(mode);
+    }
+
+    // Загрузка выбранного файла: шейп появится в центре видимой области.
+    let fileInput = $state<HTMLInputElement>();
+
+    function handleImageSelected(event: Event) {
+        const input = event.currentTarget as HTMLInputElement;
+        const file = input.files?.[0];
+        if (file) canvasManager.uploadImage(file);
+        input.value = '';
     }
 
     const isSelectActive = $derived(currentMode === 'select');
@@ -149,6 +160,22 @@
             >
                 <Fa fw icon={faArrowTrendUp} />
             </button>
+
+            <button
+                class="btn text-start btn-outline-primary"
+                type="button"
+                onclick={() => fileInput?.click()}
+                title="Изображение"
+            >
+                <Fa fw icon={faImage} />
+            </button>
+            <input
+                bind:this={fileInput}
+                type="file"
+                accept="image/png,image/jpeg"
+                hidden
+                onchange={handleImageSelected}
+            />
         {/if}
     </div>
 

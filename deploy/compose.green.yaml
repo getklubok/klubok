@@ -38,6 +38,10 @@ services:
       APP_BASE_URL: "https://domain.tld"
       HTTP_CORS_ALLOW_ORIGINS: "https://domain.tld"
       COOKIE_DOMAIN: "domain.tld"
+      STORAGE_PROVIDER: local
+      STORAGE_LOCAL_PATH: /storage
+    volumes:
+      - klubok_storage:/storage
     ports:
       - "127.0.0.1:50111:3000"
       - "127.0.0.1:50113:3030"
@@ -46,6 +50,7 @@ services:
 
 volumes:
   klubok_db_data:
+  klubok_storage:
 
 networks:
   klubok-network:

@@ -16,6 +16,7 @@ type Handler interface {
 	EmbedPublicHandler
 	FeaturesHandler
 	HealthHandler
+	ImageHandler
 	IndexHandler
 	SSOHandler
 	ShapeHandler
@@ -218,6 +219,30 @@ type HealthHandler interface {
 	//
 	// GET /health/ready
 	HealthReady(ctx context.Context) (HealthReadyRes, error)
+}
+
+// ImageHandler handles operations described by OpenAPI v3 specification.
+//
+// x-ogen-operation-group: Image
+type ImageHandler interface {
+	// EmbedImageGet implements EmbedImageGet operation.
+	//
+	// Get image variant by public embed token.
+	//
+	// GET /embed/{token}/images/{imageId}/{variant}
+	EmbedImageGet(ctx context.Context, params EmbedImageGetParams) (EmbedImageGetRes, error)
+	// ImageGet implements ImageGet operation.
+	//
+	// Get image variant of diagram.
+	//
+	// GET /diagrams/{diagramId}/images/{imageId}/{variant}
+	ImageGet(ctx context.Context, params ImageGetParams) (ImageGetRes, error)
+	// ImageUpload implements ImageUpload operation.
+	//
+	// Upload image to diagram.
+	//
+	// POST /diagrams/{diagramId}/images
+	ImageUpload(ctx context.Context, req *ImageUploadReq, params ImageUploadParams) (ImageUploadRes, error)
 }
 
 // IndexHandler handles operations described by OpenAPI v3 specification.

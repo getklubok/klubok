@@ -3,6 +3,7 @@
 package oas
 
 import (
+	"io"
 	"net/http"
 
 	"github.com/go-faster/errors"
@@ -1465,6 +1466,171 @@ func encodeEmbedGetResponse(response EmbedGetRes, w http.ResponseWriter) error {
 	}
 }
 
+func encodeEmbedImageGetResponse(response EmbedImageGetRes, w http.ResponseWriter) error {
+	switch response := response.(type) {
+	case *ImageVariantsImageJpegHeaders:
+		w.Header().Set("Content-Type", "image/jpeg")
+		w.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+		// Encoding response headers.
+		{
+			h := uri.NewHeaderEncoder(w.Header())
+			// Encode "Content-Disposition" header.
+			{
+				cfg := uri.HeaderParameterEncodingConfig{
+					Name:    "Content-Disposition",
+					Explode: false,
+				}
+				if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+					if val, ok := response.ContentDisposition.Get(); ok {
+						return e.EncodeValue(conv.StringToString(val))
+					}
+					return nil
+				}); err != nil {
+					return errors.Wrap(err, "encode Content-Disposition header")
+				}
+			}
+			// Encode "Content-Length" header.
+			{
+				cfg := uri.HeaderParameterEncodingConfig{
+					Name:    "Content-Length",
+					Explode: false,
+				}
+				if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+					if val, ok := response.ContentLength.Get(); ok {
+						return e.EncodeValue(conv.Int64ToString(val))
+					}
+					return nil
+				}); err != nil {
+					return errors.Wrap(err, "encode Content-Length header")
+				}
+			}
+		}
+		w.WriteHeader(200)
+
+		writer := w
+		if closer, ok := response.Response.Data.(io.Closer); ok {
+			defer closer.Close()
+		}
+		if _, err := io.Copy(writer, response.Response); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ImageVariantsImagePNGHeaders:
+		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+		// Encoding response headers.
+		{
+			h := uri.NewHeaderEncoder(w.Header())
+			// Encode "Content-Disposition" header.
+			{
+				cfg := uri.HeaderParameterEncodingConfig{
+					Name:    "Content-Disposition",
+					Explode: false,
+				}
+				if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+					if val, ok := response.ContentDisposition.Get(); ok {
+						return e.EncodeValue(conv.StringToString(val))
+					}
+					return nil
+				}); err != nil {
+					return errors.Wrap(err, "encode Content-Disposition header")
+				}
+			}
+			// Encode "Content-Length" header.
+			{
+				cfg := uri.HeaderParameterEncodingConfig{
+					Name:    "Content-Length",
+					Explode: false,
+				}
+				if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+					if val, ok := response.ContentLength.Get(); ok {
+						return e.EncodeValue(conv.Int64ToString(val))
+					}
+					return nil
+				}); err != nil {
+					return errors.Wrap(err, "encode Content-Length header")
+				}
+			}
+		}
+		w.WriteHeader(200)
+
+		writer := w
+		if closer, ok := response.Response.Data.(io.Closer); ok {
+			defer closer.Close()
+		}
+		if _, err := io.Copy(writer, response.Response); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *EmbedImageGetBadRequest:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(400)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *EmbedImageGetForbidden:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(403)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *EmbedImageGetNotFound:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(404)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *EmbedImageGetTooManyRequests:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(429)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *EmbedImageGetInternalServerError:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(500)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	default:
+		return errors.Errorf("unexpected response type: %T", response)
+	}
+}
+
 func encodeEmbedListResponse(response EmbedListRes, w http.ResponseWriter) error {
 	switch response := response.(type) {
 	case *EmbedListResponse:
@@ -1644,6 +1810,286 @@ func encodeHealthReadyResponse(response HealthReadyRes, w http.ResponseWriter) e
 
 	case *HealthReadyServiceUnavailable:
 		w.WriteHeader(503)
+
+		return nil
+
+	default:
+		return errors.Errorf("unexpected response type: %T", response)
+	}
+}
+
+func encodeImageGetResponse(response ImageGetRes, w http.ResponseWriter) error {
+	switch response := response.(type) {
+	case *ImageVariantsImageJpegHeaders:
+		w.Header().Set("Content-Type", "image/jpeg")
+		w.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+		// Encoding response headers.
+		{
+			h := uri.NewHeaderEncoder(w.Header())
+			// Encode "Content-Disposition" header.
+			{
+				cfg := uri.HeaderParameterEncodingConfig{
+					Name:    "Content-Disposition",
+					Explode: false,
+				}
+				if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+					if val, ok := response.ContentDisposition.Get(); ok {
+						return e.EncodeValue(conv.StringToString(val))
+					}
+					return nil
+				}); err != nil {
+					return errors.Wrap(err, "encode Content-Disposition header")
+				}
+			}
+			// Encode "Content-Length" header.
+			{
+				cfg := uri.HeaderParameterEncodingConfig{
+					Name:    "Content-Length",
+					Explode: false,
+				}
+				if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+					if val, ok := response.ContentLength.Get(); ok {
+						return e.EncodeValue(conv.Int64ToString(val))
+					}
+					return nil
+				}); err != nil {
+					return errors.Wrap(err, "encode Content-Length header")
+				}
+			}
+		}
+		w.WriteHeader(200)
+
+		writer := w
+		if closer, ok := response.Response.Data.(io.Closer); ok {
+			defer closer.Close()
+		}
+		if _, err := io.Copy(writer, response.Response); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ImageVariantsImagePNGHeaders:
+		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+		// Encoding response headers.
+		{
+			h := uri.NewHeaderEncoder(w.Header())
+			// Encode "Content-Disposition" header.
+			{
+				cfg := uri.HeaderParameterEncodingConfig{
+					Name:    "Content-Disposition",
+					Explode: false,
+				}
+				if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+					if val, ok := response.ContentDisposition.Get(); ok {
+						return e.EncodeValue(conv.StringToString(val))
+					}
+					return nil
+				}); err != nil {
+					return errors.Wrap(err, "encode Content-Disposition header")
+				}
+			}
+			// Encode "Content-Length" header.
+			{
+				cfg := uri.HeaderParameterEncodingConfig{
+					Name:    "Content-Length",
+					Explode: false,
+				}
+				if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+					if val, ok := response.ContentLength.Get(); ok {
+						return e.EncodeValue(conv.Int64ToString(val))
+					}
+					return nil
+				}); err != nil {
+					return errors.Wrap(err, "encode Content-Length header")
+				}
+			}
+		}
+		w.WriteHeader(200)
+
+		writer := w
+		if closer, ok := response.Response.Data.(io.Closer); ok {
+			defer closer.Close()
+		}
+		if _, err := io.Copy(writer, response.Response); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ImageGetBadRequest:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(400)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ImageGetUnauthorized:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(401)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ImageGetForbidden:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(403)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ImageGetNotFound:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(404)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ImageGetTooManyRequests:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(429)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ImageGetInternalServerError:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(500)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	default:
+		return errors.Errorf("unexpected response type: %T", response)
+	}
+}
+
+func encodeImageUploadResponse(response ImageUploadRes, w http.ResponseWriter) error {
+	switch response := response.(type) {
+	case *ImageUploadResponse:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(200)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ImageUploadBadRequest:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(400)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ImageUploadUnauthorized:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(401)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ImageUploadForbidden:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(403)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ImageUploadNotFound:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(404)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ImageUploadRequestEntityTooLarge:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(413)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ImageUploadTooManyRequests:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(429)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *ImageUploadInternalServerError:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(500)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
 
 		return nil
 

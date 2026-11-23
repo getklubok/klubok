@@ -1,9 +1,9 @@
-import { DEFAULT_SCALE, DEFAULT_STROKE_WIDTH } from '../constants';
+import { DEFAULT_SCALE, DEFAULT_STROKE_WIDTH, IMAGE_TEXT } from '../constants';
 import type { ShapeElement, ConnectionElement } from '../stores';
 import type { DiagramShape, DiagramConnection } from '../ApiSpec';
 import type { ShapeJson } from '../types';
 
-export function mapTypeToApi(type: string): 'S' | 'E' | 'D' | 'B' | 'T' {
+export function mapTypeToApi(type: string): 'S' | 'E' | 'D' | 'B' | 'T' | 'I' {
     switch (type) {
         case 'square': {
             return 'S';
@@ -23,6 +23,10 @@ export function mapTypeToApi(type: string): 'S' | 'E' | 'D' | 'B' | 'T' {
 
         case 'text': {
             return 'T';
+        }
+
+        case 'image': {
+            return 'I';
         }
 
         default:
@@ -60,9 +64,10 @@ export function mapShapeToApi(src: ShapeElement): DiagramShape {
         h: src.height,
         fc: src.fill,
         sc: src.stroke,
-        txt: src.text,
+        txt: src.type === 'image' ? IMAGE_TEXT : src.text,
         ta: src.textAlign ?? 'center',
         o: src.order,
+        ...('img' in src ? { img: src.img } : {}),
     };
 }
 
@@ -118,6 +123,15 @@ export function mapShapeFromApi(src: DiagramShape): ShapeElement {
             return {
                 ...base,
                 type: 'text' as const,
+            };
+        }
+
+        case 'I': {
+            return {
+                ...base,
+                type: 'image' as const,
+                img: src.img ?? '',
+                ...(src.pv ? { pv: src.pv } : {}),
             };
         }
 

@@ -31,6 +31,25 @@ func (q *Queries) DiagramShapeDelete(ctx context.Context, iD string, diagramID s
 	return err
 }
 
+const diagramShapeGet = `-- name: DiagramShapeGet :one
+SELECT id, diagram_id, data, created_at, updated_at FROM diagram_shapes
+WHERE id = $1
+AND diagram_id = $2
+`
+
+func (q *Queries) DiagramShapeGet(ctx context.Context, iD string, diagramID string) (DiagramShape, error) {
+	row := q.db.QueryRow(ctx, diagramShapeGet, iD, diagramID)
+	var i DiagramShape
+	err := row.Scan(
+		&i.ID,
+		&i.DiagramID,
+		&i.Data,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const diagramShapeList = `-- name: DiagramShapeList :many
 SELECT id, diagram_id, data, created_at, updated_at FROM diagram_shapes
 WHERE diagram_id = $1

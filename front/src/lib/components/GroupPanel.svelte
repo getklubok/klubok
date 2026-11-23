@@ -12,22 +12,27 @@
         faAlignLeft,
         faAlignCenter,
         faAlignRight,
+        faExpand,
+        faDownload,
     } from '@fortawesome/free-solid-svg-icons';
 
     import { canvasManager } from '../services/CanvasManager';
-
     import hasPermission from '../services/hasPermission';
-
-    import { selectedObject, shapes } from '../stores';
-    import type { DiagramCollaboratorPermissionEnum } from '../ApiSpec';
     import { groupActionManager } from '../services/GroupActionManager';
+
+    import { imageViewerUrl, selectedObject, shapes } from '../stores';
+    import type { DiagramCollaboratorPermissionEnum } from '../ApiSpec';
+    import { getImageUrl } from '../Api';
 
     interface Props {
         permission: DiagramCollaboratorPermissionEnum | null | undefined;
+        diagramId: string;
     }
-    const { permission }: Props = $props();
+    const { permission, diagramId }: Props = $props();
 
-    const textAlign = $derived($shapes.find((s) => s.id === $selectedObject?.name)?.textAlign ?? 'center');
+    const selectedShape = $derived($shapes.find((s) => s.id === $selectedObject?.name));
+    const textAlign = $derived(selectedShape?.textAlign ?? 'center');
+    const imageId = $derived(selectedShape && 'img' in selectedShape ? selectedShape.img : '');
 </script>
 
 <div class="group-panel">
@@ -42,23 +47,42 @@
             >
                 <Fa fw icon={faComment} />
             </button>
+            {#if imageId}
+                <button
+                    class="btn btn-outline-primary"
+                    type="button"
+                    onclick={() => imageViewerUrl.set(getImageUrl(diagramId, imageId, 'full'))}
+                    title="На весь экран"
+                >
+                    <Fa fw icon={faExpand} />
+                </button>
+                <a
+                    class="btn btn-outline-primary"
+                    href={getImageUrl(diagramId, imageId, 'download')}
+                    title="Скачать оригинал"
+                >
+                    <Fa fw icon={faDownload} />
+                </a>
+            {/if}
             {#if hasPermission(permission)}
-                <button
-                    class="btn btn-outline-primary"
-                    type="button"
-                    onclick={() => groupActionManager.startEditing($selectedObject.object)}
-                    title="Редактировать текст"
-                >
-                    <Fa fw icon={faEdit} />
-                </button>
-                <button
-                    class="btn btn-outline-primary"
-                    type="button"
-                    onclick={() => groupActionManager.cloneObject($selectedObject.object)}
-                    title="Клонировать"
-                >
-                    <Fa fw icon={faClone} />
-                </button>
+                {#if !imageId}
+                    <button
+                        class="btn btn-outline-primary"
+                        type="button"
+                        onclick={() => groupActionManager.startEditing($selectedObject.object)}
+                        title="Редактировать текст"
+                    >
+                        <Fa fw icon={faEdit} />
+                    </button>
+                    <button
+                        class="btn btn-outline-primary"
+                        type="button"
+                        onclick={() => groupActionManager.cloneObject($selectedObject.object)}
+                        title="Клонировать"
+                    >
+                        <Fa fw icon={faClone} />
+                    </button>
+                {/if}
                 <button
                     class="btn btn-outline-danger"
                     type="button"

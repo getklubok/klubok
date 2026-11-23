@@ -51,6 +51,12 @@ export interface ITextElement extends IBaseElement {
     type: 'text';
 }
 
+export interface IImageElement extends IBaseElement {
+    type: 'image';
+    img: string;
+    pv?: string;
+}
+
 export interface IDebugObjectGroup {
     left: number;
     top: number;
@@ -81,10 +87,10 @@ export interface IDebugObject {
 }
 
 // Типы для элементов фигур
-export type ElementType = 'square' | 'ellipse' | 'diamond' | 'box' | 'text';
+export type ElementType = 'square' | 'ellipse' | 'diamond' | 'box' | 'text' | 'image';
 
 export type ShapeElement =
-    IBaseElement | ISquareElement | IEllipseElement | IDiamondElement | IBoxElement | ITextElement;
+    IBaseElement | ISquareElement | IEllipseElement | IDiamondElement | IBoxElement | ITextElement | IImageElement;
 
 export type ConnectionElement = {
     fromShapeId: string;
@@ -159,6 +165,9 @@ export const contextMenu = writable<ContextMenuState>({
     target: null,
 });
 
+// URL полноэкранного варианта изображения (null — оверлей закрыт).
+export const imageViewerUrl = writable<string | null>(null);
+
 // Store фича-флагов: загружается один раз при старте приложения.
 export interface FeaturesState {
     captchaEnabled: boolean;
@@ -225,4 +234,5 @@ export function clearState() {
     cursors.set([]);
     selectedObject.set(null);
     contextMenu.set({ visible: false, x: 0, y: 0, target: null });
+    imageViewerUrl.set(null);
 }

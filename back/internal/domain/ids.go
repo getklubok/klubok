@@ -40,3 +40,8 @@ func (id CollaboratorID) String() string { return string(id) }
 type EmbedID string
 
 func (id EmbedID) String() string { return string(id) }
+
+// ImageID — ULID использования изображения диаграммы (строка images).
+type ImageID string
+
+func (id ImageID) String() string { return string(id) }

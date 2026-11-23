@@ -124,6 +124,8 @@ function makeCanvas() {
         setActiveObject: vi.fn(),
         getScenePoint: vi.fn().mockReturnValue({ x: 0, y: 0 }),
         getZoom: vi.fn().mockReturnValue(1),
+        getWidth: vi.fn().mockReturnValue(800),
+        getHeight: vi.fn().mockReturnValue(600),
         zoomToPoint: vi.fn(),
         sendObjectToBack: vi.fn(),
         selection: true,
@@ -152,6 +154,7 @@ function makeDeps(overrides: Partial<CanvasManagerDependencies> = {}): CanvasMan
                     toShapeId: c.tid,
                 }) as ConnectionElement,
         ),
+        imageUpload: vi.fn(),
         ...overrides,
     };
 }
@@ -1184,6 +1187,142 @@ describe('CanvasManager', () => {
 
             expect(selection.remove).toHaveBeenCalledWith(connection);
             expect(canvas.setActiveObject).toHaveBeenCalledWith(shape);
+        });
+    });
+
+    describe('uploadImage', () => {
+        const uploadedResponse = {
+            id: 'img-1',
+            originalName: 'photo.png',
+            mime: 'image/png',
+            width: 1600,
+            height: 900,
+            pv: 'data:image/jpeg;base64,AAAA',
+        };
+
+        it('создаёт шейп с пропорциями оригинала и передаёт img/pv', async () => {
+            const imageUpload = vi.fn().mockResolvedValue(uploadedResponse);
+            const deps = makeDeps({ imageUpload });
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            manager.init(canvas);
+            manager.setDiagramInfo(makeDiagramInfo());
+
+            await manager.uploadImage({} as File, { x: 50, y: 60 });
+
+            expect(imageUpload).toHaveBeenCalledWith('d1', { file: {} });
+            const calls = mockFabricManager.createShape.mock.calls;
+            const created = calls[calls.length - 1][0] as ShapeElement;
+            expect(created).toMatchObject({
+                type: 'image',
+                left: 50,
+                top: 60,
+                img: 'img-1',
+                pv: 'data:image/jpeg;base64,AAAA',
+                fill: 'transparent',
+                stroke: 'transparent',
+            });
+            // 1600×900 → длинная сторона 320: width 320, height 180.
+            expect(created.width).toBe(320);
+            expect(created.height).toBe(180);
+            expect(created.order).not.toBe('');
+            expect(mockShapeStoreManager.add).toHaveBeenCalled();
+        });
+
+        it('вставляет по центру видимой области если точка не задана', async () => {
+            const imageUpload = vi.fn().mockResolvedValue({ ...uploadedResponse, width: 300, height: 600 });
+            const deps = makeDeps({ imageUpload });
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            canvas.viewportTransform = [1, 0, 0, 1, -100, -50];
+            manager.init(canvas);
+            manager.setDiagramInfo(makeDiagramInfo());
+
+            await manager.uploadImage({} as File);
+
+            const calls = mockFabricManager.createShape.mock.calls;
+            const created = calls[calls.length - 1][0] as ShapeElement;
+            // центр экрана 800×600 → сцена (400+100, 300+50)
+            expect(created.left).toBe(500);
+            expect(created.top).toBe(350);
+            // 300×600 → длинная сторона по высоте 320, ширина 160.
+            expect(created.width).toBe(160);
+            expect(created.height).toBe(320);
+        });
+
+        it('не создаёт шейп при ошибке загрузки', async () => {
+            const imageUpload = vi.fn().mockRejectedValue(new Error('413'));
+            const deps = makeDeps({ imageUpload });
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            manager.init(canvas);
+            manager.setDiagramInfo(makeDiagramInfo());
+
+            await manager.uploadImage({} as File, { x: 10, y: 10 });
+
+            expect(mockShapeStoreManager.add).not.toHaveBeenCalled();
+        });
+
+        it('не отправляет запрос при праве VIEW', async () => {
+            const imageUpload = vi.fn();
+            const deps = makeDeps({ imageUpload, hasPermission: vi.fn().mockReturnValue(false) });
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            manager.init(canvas);
+            manager.setDiagramInfo(makeDiagramInfo({ permission: 'VIEW' }));
+
+            await manager.uploadImage({} as File, { x: 10, y: 10 });
+
+            expect(imageUpload).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('snapToGridObj (image)', () => {
+        it('подгоняет рамку и preview под новый размер группы', () => {
+            const deps = makeDeps();
+            const manager = new CanvasManagerClass(deps);
+            manager.init(makeCanvas());
+
+            const frame = { type: 'rect', width: 320, height: 180, set: vi.fn() };
+            const text = { type: 'i-text', width: 10, scaleX: 1, set: vi.fn() };
+            const preview = { type: 'image', width: 1600, height: 900, set: vi.fn() };
+            const group = {
+                type: 'group',
+                name: 'img-1',
+                shapeType: 'image',
+                left: 200,
+                top: 200,
+                width: 320,
+                height: 180,
+                scaleX: 2,
+                scaleY: 2,
+                __corner: 'br',
+                item: vi.fn((index: number) => [frame, text, preview][index]),
+                getObjects: vi.fn().mockReturnValue([frame, text, preview]),
+                set: vi.fn(),
+                setCoords: vi.fn(),
+            };
+            mockShapeStoreManager.getById.mockReturnValue(makeShape({ id: 'img-1' }));
+
+            (manager as unknown as { snapToGridObj(obj: unknown, action: 'scaling'): void }).snapToGridObj(
+                group,
+                'scaling',
+            );
+
+            // realW=640, realH=360 — уже кратны сетке.
+            expect(group.set).toHaveBeenCalledWith({
+                width: 640,
+                height: 360,
+                scaleX: 1,
+                scaleY: 1,
+                left: 200,
+                top: 200,
+            });
+            expect(frame.set).toHaveBeenCalledWith({ width: 640, height: 360 });
+            // contain 16:9 в 640×360 → 0.4.
+            const previewSet = preview.set.mock.calls[0][0] as { scaleX: number; scaleY: number };
+            expect(previewSet.scaleX).toBeCloseTo(0.4);
+            expect(previewSet.scaleY).toBeCloseTo(0.4);
         });
     });
 

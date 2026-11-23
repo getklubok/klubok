@@ -487,6 +487,80 @@ paths:
       tags:
         - DiagramService
 
+  /diagrams/{diagramId}/images:
+    x-ogen-operation-group: Image
+    post:
+      summary: Upload image to diagram.
+      operationId: ImageUpload
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: PNG or JPEG image.
+              required:
+                - file
+      responses:
+        "200":
+          description: A successful response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImageUploadResponse"
+        "400":
+          $ref: "#/components/responses/StatusBadRequest"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "404":
+          $ref: "#/components/responses/StatusNotFound"
+        "413":
+          $ref: "#/components/responses/StatusRequestEntityTooLarge"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+  /diagrams/{diagramId}/images/{imageId}/{variant}:
+    x-ogen-operation-group: Image
+    get:
+      summary: Get image variant of diagram.
+      operationId: ImageGet
+      parameters:
+        - name: diagramId
+          $ref: "#/components/parameters/DiagramId"
+        - name: imageId
+          $ref: "#/components/parameters/ImageId"
+        - name: variant
+          $ref: "#/components/parameters/ImageVariant"
+      responses:
+        "200":
+          $ref: "#/components/responses/ImageVariants"
+        "400":
+          $ref: "#/components/responses/StatusBadRequest"
+        "401":
+          $ref: "#/components/responses/StatusUnauthorized"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "404":
+          $ref: "#/components/responses/StatusNotFound"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+
   /diagrams/{diagramId}/connections:
     x-ogen-operation-group: Connection
     post:
@@ -1060,6 +1134,41 @@ paths:
       tags:
         - DiagramService
 
+  /embed/{token}/images/{imageId}/{variant}:
+    x-ogen-operation-group: Image
+    get:
+      security: []
+      summary: Get image variant by public embed token.
+      operationId: EmbedImageGet
+      parameters:
+        - name: token
+          description: Embed token
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 64
+            maxLength: 64
+        - name: imageId
+          $ref: "#/components/parameters/ImageId"
+        - name: variant
+          $ref: "#/components/parameters/ImageVariant"
+      responses:
+        "200":
+          $ref: "#/components/responses/ImageVariants"
+        "400":
+          $ref: "#/components/responses/StatusBadRequest"
+        "403":
+          $ref: "#/components/responses/StatusForbidden"
+        "404":
+          $ref: "#/components/responses/StatusNotFound"
+        "429":
+          $ref: "#/components/responses/StatusTooManyRequests"
+        "500":
+          $ref: "#/components/responses/StatusInternalServerError"
+      tags:
+        - DiagramService
+
 components:
   securitySchemes:
     sessionCookie:
@@ -1110,6 +1219,33 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/generalError"
+    StatusRequestEntityTooLarge:
+      description: Request body is too large.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/generalError"
+    ImageVariants:
+      description: Image bytes.
+      headers:
+        Content-Length:
+          description: Size of image bytes.
+          schema:
+            type: integer
+            format: int64
+        Content-Disposition:
+          description: Inline for full variant, attachment with file name for download.
+          schema:
+            type: string
+      content:
+        image/png:
+          schema:
+            type: string
+            format: binary
+        image/jpeg:
+          schema:
+            type: string
+            format: binary
 
   parameters:
     DiagramId:
@@ -1133,6 +1269,20 @@ components:
       required: true
       schema:
         $ref: "#/components/schemas/ulid"
+    ImageId:
+      name: imageId
+      description: Image ID
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ulid"
+    ImageVariant:
+      name: variant
+      description: Image variant. Preview is not served by this route.
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ImageVariantEnum"
 
   schemas:
     ulid:
@@ -1199,6 +1349,40 @@ components:
           $ref: "#/components/schemas/DiagramInfo"
       required:
         - diagramInfo
+    ImageUploadResponse:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ulid"
+        originalName:
+          type: string
+          description: Sanitized original file name.
+          x-nullable: false
+        mime:
+          type: string
+          description: Detected MIME type, image/png or image/jpeg.
+          x-nullable: false
+        width:
+          type: integer
+          format: int32
+          description: Original image width in pixels.
+          x-nullable: false
+        height:
+          type: integer
+          format: int32
+          description: Original image height in pixels.
+          x-nullable: false
+        pv:
+          type: string
+          description: Preview as data URL.
+          x-nullable: false
+      required:
+        - id
+        - originalName
+        - mime
+        - width
+        - height
+        - pv
 
     IndexResponse:
       type: object
@@ -1648,7 +1832,7 @@ components:
           x-nullable: false
         txt:
           type: string
-          description: Text.
+          description: Text. Image shape gets placeholder text from the client.
           minLength: 1
           x-nullable: false
         ta:
@@ -1656,6 +1840,14 @@ components:
         o:
           type: string
           description: Order key for layering
+          x-nullable: false
+        img:
+          type: string
+          description: Image ID for IMAGE shape. Empty for other types.
+          x-nullable: false
+        pv:
+          type: string
+          description: Image preview data URL for IMAGE shape. Server-side read-only.
           x-nullable: false
       required:
         - id
@@ -1792,12 +1984,14 @@ components:
         - D
         - B
         - T
+        - I
       title: |-
         - S: SQUARE
         - E: ELLIPSE
         - D: DIAMOND
         - B: BOX
         - T: TEXT
+        - I: IMAGE
 
     DiagramShapeTextAlignEnum:
       type: string
@@ -1806,6 +2000,15 @@ components:
         - center
         - right
       description: Horizontal text alignment. Defaults to center.
+
+    ImageVariantEnum:
+      type: string
+      enum:
+        - full
+        - download
+      description: |-
+        - full: FULLSCREEN
+        - download: ORIGINAL
 
     DiagramCollaboratorPermissionEnum:
       type: string

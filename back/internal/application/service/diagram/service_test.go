@@ -12,6 +12,8 @@ import (
 	"go.uber.org/zap"
 
 	"klubok/internal/application/service/diagram/mocks"
+	"klubok/internal/application/service/image"
+	"klubok/internal/application/websocket"
 	"klubok/internal/db"
 	"klubok/internal/db/sqlc"
 	"klubok/internal/domain"
@@ -223,19 +225,49 @@ func TestService_Delete(t *testing.T) {
 		wantErr   error
 	}{
 		{
-			name:      "Success",
+			name:      "Success with image blobs",
 			diagramID: "diagram-1",
 			handler: func(t *testing.T) *Service {
 				t.Helper()
 
-				q := mocks.NewQuerierMock(t)
-				q.EXPECT().
-					DiagramDelete(mock.Anything, "diagram-1").
-					Return(nil)
+				dbUC := mocks.NewDBUseCaseMock(t)
+				dbUC.EXPECT().
+					DiagramDeleteWithImages(mock.Anything, "diagram-1").
+					Return([]db.ImageBlob{
+						{Hash: "hash-1", Mime: "image/png"},
+						{Hash: "hash-2", Mime: "image/jpeg"},
+					}, nil)
+
+				cleaner := mocks.NewBlobCleanerMock(t)
+				cleaner.EXPECT().
+					EnqueueCleanup([]image.Blob{
+						{Hash: "hash-1", Mime: "image/png"},
+						{Hash: "hash-2", Mime: "image/jpeg"},
+					}).
+					Return()
 
 				return &Service{
-					querier: q,
-					log:     zap.NewNop(),
+					dbUseCase:   dbUC,
+					blobCleaner: cleaner,
+					log:         zap.NewNop(),
+				}
+			},
+		},
+		{
+			name:      "Success without images",
+			diagramID: "diagram-1",
+			handler: func(t *testing.T) *Service {
+				t.Helper()
+
+				dbUC := mocks.NewDBUseCaseMock(t)
+				dbUC.EXPECT().
+					DiagramDeleteWithImages(mock.Anything, "diagram-1").
+					Return([]db.ImageBlob{}, nil)
+
+				return &Service{
+					dbUseCase:   dbUC,
+					blobCleaner: mocks.NewBlobCleanerMock(t),
+					log:         zap.NewNop(),
 				}
 			},
 		},
@@ -245,14 +277,15 @@ func TestService_Delete(t *testing.T) {
 			handler: func(t *testing.T) *Service {
 				t.Helper()
 
-				q := mocks.NewQuerierMock(t)
-				q.EXPECT().
-					DiagramDelete(mock.Anything, "diagram-1").
-					Return(errDB)
+				dbUC := mocks.NewDBUseCaseMock(t)
+				dbUC.EXPECT().
+					DiagramDeleteWithImages(mock.Anything, "diagram-1").
+					Return(nil, errDB)
 
 				return &Service{
-					querier: q,
-					log:     zap.NewNop(),
+					dbUseCase:   dbUC,
+					blobCleaner: mocks.NewBlobCleanerMock(t),
+					log:         zap.NewNop(),
 				}
 			},
 			wantErr: errors.New("delete diagram: db error"),
@@ -412,6 +445,81 @@ func TestService_Info(t *testing.T) {
 						CommentCount: 5,
 					},
 				},
+			},
+		},
+		{
+			name:      "Success - image preview",
+			diagramID: "diagram-1",
+			handler: func(t *testing.T) *Service {
+				t.Helper()
+
+				q := mocks.NewQuerierMock(t)
+				q.EXPECT().
+					DiagramGet(mock.Anything, "diagram-1").
+					Return(sqlc.Diagram{
+						ID:    "diagram-1",
+						Title: "Test Diagram",
+					}, nil)
+
+				q.EXPECT().
+					DiagramShapeList(mock.Anything, "diagram-1").
+					Return([]sqlc.DiagramShape{
+						{
+							DiagramID: "diagram-1",
+							Data: domain.DiagramShape{
+								ID:   domain.ShapeID("shape-1"),
+								Type: domain.DiagramShapeTypeImage,
+								Img:  "image-1",
+							},
+						},
+						{
+							DiagramID: "diagram-1",
+							Data: domain.DiagramShape{
+								ID:   domain.ShapeID("shape-2"),
+								Type: domain.DiagramShapeTypeImage,
+								Img:  "image-foreign",
+							},
+						},
+					}, nil)
+
+				q.EXPECT().
+					ImagePreviewListByDiagram(mock.Anything, "diagram-1").
+					Return([]sqlc.ImagePreviewListByDiagramRow{
+						{ID: "image-1", Preview: []byte("preview")},
+					}, nil)
+
+				q.EXPECT().
+					DiagramConnectionList(mock.Anything, "diagram-1").
+					Return([]sqlc.DiagramConnection{}, nil)
+
+				q.EXPECT().
+					DiagramCommentStats(mock.Anything, "diagram-1").
+					Return([]sqlc.DiagramCommentStatsRow{}, nil)
+
+				return &Service{
+					querier: q,
+					log:     zap.NewNop(),
+				}
+			},
+			want: domain.DiagramInfo{
+				ID:         domain.DiagramID("diagram-1"),
+				Title:      "Test Diagram",
+				Permission: domain.DiagramCollaboratorPermissionView,
+				Shapes: []domain.DiagramShape{
+					{
+						ID:   domain.ShapeID("shape-1"),
+						Type: domain.DiagramShapeTypeImage,
+						Img:  "image-1",
+						Pv:   "data:image/jpeg;base64,cHJldmlldw==",
+					},
+					{
+						ID:   domain.ShapeID("shape-2"),
+						Type: domain.DiagramShapeTypeImage,
+						Img:  "image-foreign",
+					},
+				},
+				Connections:       []domain.DiagramConnection{},
+				ShapeCommentStats: []domain.DiagramShapeCommentStat{},
 			},
 		},
 		{
@@ -607,6 +715,70 @@ func TestService_InfoByUser(t *testing.T) {
 			},
 		},
 		{
+			name:      "Success - image preview",
+			diagramID: domain.DiagramID("diagram-1"),
+			userID:    domain.UserID("user-1"),
+			handler: func(t *testing.T) *Service {
+				t.Helper()
+
+				q := mocks.NewQuerierMock(t)
+				q.EXPECT().
+					DiagramGetByUser(mock.Anything, "user-1", "diagram-1").
+					Return(sqlc.DiagramGetByUserRow{
+						ID:         "diagram-1",
+						Title:      "Test Diagram",
+						Permission: domain.DiagramCollaboratorPermissionView,
+					}, nil)
+
+				q.EXPECT().
+					DiagramShapeList(mock.Anything, "diagram-1").
+					Return([]sqlc.DiagramShape{
+						{
+							DiagramID: "diagram-1",
+							Data: domain.DiagramShape{
+								ID:   domain.ShapeID("shape-1"),
+								Type: domain.DiagramShapeTypeImage,
+								Img:  "image-1",
+							},
+						},
+					}, nil)
+
+				q.EXPECT().
+					ImagePreviewListByDiagram(mock.Anything, "diagram-1").
+					Return([]sqlc.ImagePreviewListByDiagramRow{
+						{ID: "image-1", Preview: []byte("preview")},
+					}, nil)
+
+				q.EXPECT().
+					DiagramConnectionList(mock.Anything, "diagram-1").
+					Return([]sqlc.DiagramConnection{}, nil)
+
+				q.EXPECT().
+					DiagramCommentStats(mock.Anything, "diagram-1").
+					Return([]sqlc.DiagramCommentStatsRow{}, nil)
+
+				return &Service{
+					querier: q,
+					log:     zap.NewNop(),
+				}
+			},
+			want: domain.DiagramInfo{
+				ID:         domain.DiagramID("diagram-1"),
+				Title:      "Test Diagram",
+				Permission: domain.DiagramCollaboratorPermissionView,
+				Shapes: []domain.DiagramShape{
+					{
+						ID:   domain.ShapeID("shape-1"),
+						Type: domain.DiagramShapeTypeImage,
+						Img:  "image-1",
+						Pv:   "data:image/jpeg;base64,cHJldmlldw==",
+					},
+				},
+				Connections:       []domain.DiagramConnection{},
+				ShapeCommentStats: []domain.DiagramShapeCommentStat{},
+			},
+		},
+		{
 			name:      "Diagram not found",
 			diagramID: domain.DiagramID("diagram-1"),
 			userID:    domain.UserID("user-1"),
@@ -781,6 +953,58 @@ func TestService_ShapeUpsert(t *testing.T) {
 			},
 		},
 		{
+			name:      "Success - image preview",
+			userID:    domain.UserID("user-1"),
+			diagramID: domain.DiagramID("diagram-1"),
+			shape: domain.DiagramShape{
+				ID:   domain.ShapeID("shape-1"),
+				Type: domain.DiagramShapeTypeImage,
+				Img:  "image-1",
+			},
+			handler: func(t *testing.T) *Service {
+				t.Helper()
+
+				q := mocks.NewQuerierMock(t)
+				q.EXPECT().
+					DiagramShapeUpsert(mock.Anything, sqlc.DiagramShapeUpsertParams{
+						ID:        "shape-1",
+						DiagramID: "diagram-1",
+						Data: domain.DiagramShape{
+							ID:   domain.ShapeID("shape-1"),
+							Type: domain.DiagramShapeTypeImage,
+							Img:  "image-1",
+						},
+					}).
+					Return(nil)
+
+				q.EXPECT().
+					ImagePreviewListByDiagram(mock.Anything, "diagram-1").
+					Return([]sqlc.ImagePreviewListByDiagramRow{
+						{ID: "image-1", Preview: []byte("preview")},
+					}, nil)
+
+				ws := mocks.NewWebSocketManagerMock(t)
+				ws.EXPECT().
+					BroadcastToDiagram(
+						domain.DiagramID("diagram-1"),
+						mock.MatchedBy(func(msg websocket.Message) bool {
+							shape, ok := msg.Data.(domain.DiagramShape)
+
+							return ok && shape.Pv == "data:image/jpeg;base64,cHJldmlldw=="
+						}),
+						mock.Anything,
+					).
+					Return(nil)
+
+				return &Service{
+					querier:   q,
+					wsManager: ws,
+					log:       zap.NewNop(),
+					nowFunc:   func() time.Time { return time.Date(2024, 12, 18, 14, 0, 0, 0, time.UTC) },
+				}
+			},
+		},
+		{
 			name:      "DB error",
 			userID:    domain.UserID("user-1"),
 			diagramID: domain.DiagramID("diagram-1"),
@@ -828,17 +1052,49 @@ func TestService_ShapeDelete(t *testing.T) {
 		wantErr   error
 	}{
 		{
-			name:      "Success",
+			name:      "Success - image shape enqueues cleanup",
 			userID:    domain.UserID("user-1"),
 			diagramID: domain.DiagramID("diagram-1"),
 			shapeID:   domain.ShapeID("shape-1"),
 			handler: func(t *testing.T) *Service {
 				t.Helper()
 
-				q := mocks.NewQuerierMock(t)
-				q.EXPECT().
-					DiagramShapeDelete(mock.Anything, "shape-1", "diagram-1").
+				dbUC := mocks.NewDBUseCaseMock(t)
+				dbUC.EXPECT().
+					DiagramShapeDeleteWithImage(mock.Anything, "diagram-1", "shape-1").
+					Return([]db.ImageBlob{{Hash: "hash-1", Mime: "image/png"}}, nil)
+
+				ws := mocks.NewWebSocketManagerMock(t)
+				ws.EXPECT().
+					BroadcastToDiagram(domain.DiagramID("diagram-1"), mock.Anything, mock.Anything).
 					Return(nil)
+
+				cleaner := mocks.NewBlobCleanerMock(t)
+				cleaner.EXPECT().
+					EnqueueCleanup([]image.Blob{{Hash: "hash-1", Mime: "image/png"}}).
+					Return()
+
+				return &Service{
+					dbUseCase:   dbUC,
+					wsManager:   ws,
+					blobCleaner: cleaner,
+					log:         zap.NewNop(),
+					nowFunc:     func() time.Time { return time.Date(2024, 12, 18, 14, 0, 0, 0, time.UTC) },
+				}
+			},
+		},
+		{
+			name:      "Success - other shape types do not touch images",
+			userID:    domain.UserID("user-1"),
+			diagramID: domain.DiagramID("diagram-1"),
+			shapeID:   domain.ShapeID("shape-1"),
+			handler: func(t *testing.T) *Service {
+				t.Helper()
+
+				dbUC := mocks.NewDBUseCaseMock(t)
+				dbUC.EXPECT().
+					DiagramShapeDeleteWithImage(mock.Anything, "diagram-1", "shape-1").
+					Return([]db.ImageBlob{}, nil)
 
 				ws := mocks.NewWebSocketManagerMock(t)
 				ws.EXPECT().
@@ -846,10 +1102,11 @@ func TestService_ShapeDelete(t *testing.T) {
 					Return(nil)
 
 				return &Service{
-					querier:   q,
-					wsManager: ws,
-					log:       zap.NewNop(),
-					nowFunc:   func() time.Time { return time.Date(2024, 12, 18, 14, 0, 0, 0, time.UTC) },
+					dbUseCase:   dbUC,
+					wsManager:   ws,
+					blobCleaner: mocks.NewBlobCleanerMock(t),
+					log:         zap.NewNop(),
+					nowFunc:     func() time.Time { return time.Date(2024, 12, 18, 14, 0, 0, 0, time.UTC) },
 				}
 			},
 		},
@@ -861,15 +1118,16 @@ func TestService_ShapeDelete(t *testing.T) {
 			handler: func(t *testing.T) *Service {
 				t.Helper()
 
-				q := mocks.NewQuerierMock(t)
-				q.EXPECT().
-					DiagramShapeDelete(mock.Anything, mock.Anything, mock.Anything).
-					Return(errDB)
+				dbUC := mocks.NewDBUseCaseMock(t)
+				dbUC.EXPECT().
+					DiagramShapeDeleteWithImage(mock.Anything, mock.Anything, mock.Anything).
+					Return(nil, errDB)
 
 				return &Service{
-					querier: q,
-					log:     zap.NewNop(),
-					nowFunc: func() time.Time { return time.Date(2024, 12, 18, 14, 0, 0, 0, time.UTC) },
+					dbUseCase:   dbUC,
+					blobCleaner: mocks.NewBlobCleanerMock(t),
+					log:         zap.NewNop(),
+					nowFunc:     func() time.Time { return time.Date(2024, 12, 18, 14, 0, 0, 0, time.UTC) },
 				}
 			},
 			wantErr: errors.New("delete diagram shape: db error"),
@@ -1515,6 +1773,24 @@ func TestService_OnlineUsers(t *testing.T) {
 	}
 }
 
+// isCloneWithImages проверяет, что клон получил строки images и img шейпа указывает на исходную строку.
+func isCloneWithImages(params db.DiagramCloneParams) bool {
+	return params.NewTitle == "Original (copy)" &&
+		params.OwnerUserID == "user-1" &&
+		len(params.Shapes) == 2 &&
+		len(params.Connections) == 1 &&
+		len(params.Comments) == 0 &&
+		len(params.Collaborators) == 1 &&
+		params.Collaborators[0].UserID == "user-2" &&
+		params.Collaborators[0].Permission == domain.DiagramCollaboratorPermissionEdit &&
+		len(params.Images) == 1 &&
+		params.Images[0].ID == "image-1" &&
+		params.Images[0].BlobHash == "hash-1" &&
+		params.Images[0].OriginalName == "photo.png" &&
+		params.Shapes[1].Data.Img == "image-1" &&
+		params.Shapes[1].Data.Pv == ""
+}
+
 func TestService_Clone(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -1555,6 +1831,34 @@ func TestService_Clone(t *testing.T) {
 								Top:  100,
 							},
 						},
+						{
+							ID:        "shape-2",
+							DiagramID: "src-diagram-1",
+							Data: domain.DiagramShape{
+								ID:   domain.ShapeID("shape-2"),
+								Type: domain.DiagramShapeTypeImage,
+								Img:  "image-1",
+							},
+						},
+					}, nil)
+
+				q.EXPECT().
+					ImagePreviewListByDiagram(mock.Anything, "src-diagram-1").
+					Return([]sqlc.ImagePreviewListByDiagramRow{
+						{ID: "image-1", Preview: []byte("preview")},
+					}, nil)
+
+				q.EXPECT().
+					ImageListByDiagram(mock.Anything, "src-diagram-1").
+					Return([]sqlc.Image{
+						{
+							ID:           "image-1",
+							DiagramID:    "src-diagram-1",
+							BlobHash:     "hash-1",
+							Preview:      []byte("preview"),
+							OriginalName: "photo.png",
+							Mime:         "image/png",
+						},
 					}, nil)
 
 				q.EXPECT().
@@ -1584,16 +1888,7 @@ func TestService_Clone(t *testing.T) {
 
 				dbUC := mocks.NewDBUseCaseMock(t)
 				dbUC.EXPECT().
-					DiagramClone(mock.Anything, mock.MatchedBy(func(params db.DiagramCloneParams) bool {
-						return params.NewTitle == "Original (copy)" &&
-							params.OwnerUserID == "user-1" &&
-							len(params.Shapes) == 1 &&
-							len(params.Connections) == 1 &&
-							len(params.Comments) == 0 &&
-							len(params.Collaborators) == 1 &&
-							params.Collaborators[0].UserID == "user-2" &&
-							params.Collaborators[0].Permission == domain.DiagramCollaboratorPermissionEdit
-					})).
+					DiagramClone(mock.Anything, mock.MatchedBy(isCloneWithImages)).
 					Return(sqlc.DiagramGetByUserRow{
 						ID:         "new-diagram-1",
 						Title:      "Original (copy)",
@@ -1666,6 +1961,10 @@ func TestService_Clone(t *testing.T) {
 							Permission: domain.DiagramCollaboratorPermissionView,
 						},
 					}, nil)
+
+				q.EXPECT().
+					ImageListByDiagram(mock.Anything, "src-diagram-1").
+					Return([]sqlc.Image{}, nil)
 
 				dbUC := mocks.NewDBUseCaseMock(t)
 				dbUC.EXPECT().
@@ -1838,6 +2137,10 @@ func TestService_Clone(t *testing.T) {
 				q.EXPECT().
 					DiagramCollaboratorFlatList(mock.Anything, "src-diagram-1").
 					Return([]sqlc.DiagramCollaborator{}, nil)
+
+				q.EXPECT().
+					ImageListByDiagram(mock.Anything, "src-diagram-1").
+					Return([]sqlc.Image{}, nil)
 
 				dbUC := mocks.NewDBUseCaseMock(t)
 				dbUC.EXPECT().
@@ -2342,6 +2645,86 @@ func TestService_Import(t *testing.T) {
 				Permission: domain.DiagramCollaboratorPermissionOwner,
 				CreatedAt:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
 				UpdatedAt:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+			},
+		},
+		{
+			name:   "Drops image shapes and their connections",
+			userID: domain.UserID("user-1"),
+			diagramInfo: domain.DiagramInfo{
+				Title: "With images",
+				Shapes: []domain.DiagramShape{
+					{
+						ID:   domain.ShapeID("shape-1"),
+						Type: "SQUARE",
+					},
+					{
+						ID:   domain.ShapeID("shape-2"),
+						Type: domain.DiagramShapeTypeImage,
+						Img:  "image-1",
+					},
+					{
+						ID:   domain.ShapeID("shape-3"),
+						Type: "DIAMOND",
+					},
+				},
+				Connections: []domain.DiagramConnection{
+					{
+						FromShapeID: domain.ShapeID("shape-1"),
+						ToShapeID:   domain.ShapeID("shape-2"),
+					},
+					{
+						FromShapeID: domain.ShapeID("shape-1"),
+						ToShapeID:   domain.ShapeID("shape-3"),
+					},
+				},
+			},
+			handler: func(t *testing.T) *Service {
+				t.Helper()
+
+				dbUC := mocks.NewDBUseCaseMock(t)
+				dbUC.EXPECT().
+					DiagramClone(mock.Anything, db.DiagramCloneParams{
+						NewDiagramID: "generated-id",
+						NewTitle:     "With images (imported 2024-02-01 00:00)",
+						OwnerUserID:  "user-1",
+						Shapes: []db.DiagramShapeClone{
+							{
+								ID: "generated-id",
+								Data: domain.DiagramShape{
+									ID:   domain.ShapeID("generated-id"),
+									Type: "SQUARE",
+								},
+							},
+							{
+								ID: "generated-id",
+								Data: domain.DiagramShape{
+									ID:   domain.ShapeID("generated-id"),
+									Type: "DIAMOND",
+								},
+							},
+						},
+						Connections: []db.DiagramConnectionClone{
+							{
+								FromShapeID: "generated-id",
+								ToShapeID:   "generated-id",
+							},
+						},
+					}).
+					Return(sqlc.DiagramGetByUserRow{
+						ID:    "generated-id",
+						Title: "With images (imported 2024-02-01 00:00)",
+					}, nil)
+
+				return &Service{
+					dbUseCase: dbUC,
+					log:       zap.NewNop(),
+					idFunc:    func() string { return "generated-id" },
+					nowFunc:   func() time.Time { return time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC) },
+				}
+			},
+			want: domain.Diagram{
+				ID:    domain.DiagramID("generated-id"),
+				Title: "With images (imported 2024-02-01 00:00)",
 			},
 		},
 	}

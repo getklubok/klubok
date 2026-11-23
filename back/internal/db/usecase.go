@@ -2,9 +2,11 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"klubok/internal/db/sqlc"
@@ -165,6 +167,22 @@ type DiagramCloneParams struct {
 	Connections   []DiagramConnectionClone
 	Comments      []DiagramCommentClone
 	Collaborators []DiagramCollaboratorClone
+	Images        []ImageClone
+}
+
+// ImageClone описывает строку images, которую нужно скопировать при клонировании.
+type ImageClone struct {
+	ID           string
+	BlobHash     string
+	Preview      []byte
+	OriginalName string
+	Mime         string
+}
+
+// ImageBlob ссылается на блоб, который освободился после удаления строки images.
+type ImageBlob struct {
+	Hash string
+	Mime string
 }
 
 type DiagramShapeClone struct {
@@ -217,13 +235,21 @@ func (uc *UseCase) DiagramClone(ctx context.Context, params DiagramCloneParams) 
 
 	now := time.Now()
 
+	imageRows, imageIDs := cloneImageRows(params.NewDiagramID, params.Images, uc.idFunc, now)
+	if len(imageRows) > 0 {
+		if _, err := qtx.ImageBulkInsert(ctx, imageRows); err != nil {
+			_ = tx.Rollback(ctx)
+			return sqlc.DiagramGetByUserRow{}, fmt.Errorf("bulk insert images: %w", err)
+		}
+	}
+
 	if len(params.Shapes) > 0 {
 		shapeRows := make([]sqlc.DiagramShapeBulkInsertParams, 0, len(params.Shapes))
 		for _, s := range params.Shapes {
 			shapeRows = append(shapeRows, sqlc.DiagramShapeBulkInsertParams{
 				ID:        s.ID,
 				DiagramID: params.NewDiagramID,
-				Data:      s.Data,
+				Data:      cloneShapeData(s.Data, imageIDs),
 				CreatedAt: now,
 				UpdatedAt: now,
 			})
@@ -361,4 +387,149 @@ func (uc *UseCase) DiagramConnectionBatchUpsert(ctx context.Context, diagramID s
 	}
 
 	return nil
+}
+
+func (uc *UseCase) DiagramShapeGet(ctx context.Context, diagramID string, shapeID string) (sqlc.DiagramShape, error) {
+	shape, err := uc.queries.DiagramShapeGet(ctx, shapeID, diagramID)
+	if err != nil {
+		return sqlc.DiagramShape{}, fmt.Errorf("get diagram shape: %w", err)
+	}
+
+	return shape, nil
+}
+
+// DiagramShapeDeleteWithImage удаляет шейп и связанную строку images в одной транзакции.
+func (uc *UseCase) DiagramShapeDeleteWithImage(ctx context.Context, diagramID string, shapeID string) ([]ImageBlob, error) {
+	tx, err := uc.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin transaction: %w", err)
+	}
+
+	qtx := uc.queries.WithTx(tx)
+
+	shape, err := qtx.DiagramShapeGet(ctx, shapeID, diagramID)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		_ = tx.Rollback(ctx)
+
+		return nil, fmt.Errorf("get diagram shape: %w", err)
+	}
+
+	if err := qtx.DiagramShapeDelete(ctx, shapeID, diagramID); err != nil {
+		_ = tx.Rollback(ctx)
+
+		return nil, fmt.Errorf("delete diagram shape: %w", err)
+	}
+
+	var blobs []ImageBlob
+
+	if imageID := shapeImageID(shape); imageID != "" {
+		row, err := qtx.ImageDeleteForShape(ctx, imageID, diagramID)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			_ = tx.Rollback(ctx)
+
+			return nil, fmt.Errorf("delete shape image: %w", err)
+		}
+
+		if err == nil {
+			blobs = append(blobs, imageBlobFromShape(row))
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		_ = tx.Rollback(ctx)
+
+		return nil, fmt.Errorf("commit transaction: %w", err)
+	}
+
+	return blobs, nil
+}
+
+// DiagramDeleteWithImages удаляет строки images и диаграмму в одной транзакции.
+func (uc *UseCase) DiagramDeleteWithImages(ctx context.Context, diagramID string) ([]ImageBlob, error) {
+	tx, err := uc.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin transaction: %w", err)
+	}
+
+	qtx := uc.queries.WithTx(tx)
+
+	imageRows, err := qtx.ImageDeleteForDiagram(ctx, diagramID)
+	if err != nil {
+		_ = tx.Rollback(ctx)
+
+		return nil, fmt.Errorf("delete diagram images: %w", err)
+	}
+
+	if err := qtx.DiagramDelete(ctx, diagramID); err != nil {
+		_ = tx.Rollback(ctx)
+
+		return nil, fmt.Errorf("delete diagram: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		_ = tx.Rollback(ctx)
+
+		return nil, fmt.Errorf("commit transaction: %w", err)
+	}
+
+	return imageBlobsFromDiagram(imageRows), nil
+}
+
+func cloneImageRows(
+	diagramID string,
+	images []ImageClone,
+	newID func() string,
+	now time.Time,
+) ([]sqlc.ImageBulkInsertParams, map[string]string) {
+	rows := make([]sqlc.ImageBulkInsertParams, 0, len(images))
+	imageIDs := make(map[string]string, len(images))
+
+	for _, image := range images {
+		id := newID()
+		imageIDs[image.ID] = id
+
+		rows = append(rows, sqlc.ImageBulkInsertParams{
+			ID:           id,
+			DiagramID:    diagramID,
+			BlobHash:     image.BlobHash,
+			Preview:      image.Preview,
+			OriginalName: image.OriginalName,
+			Mime:         image.Mime,
+			CreatedAt:    now,
+		})
+	}
+
+	return rows, imageIDs
+}
+
+func cloneShapeData(shape domain.DiagramShape, imageIDs map[string]string) domain.DiagramShape {
+	data := shape
+	data.Pv = ""
+
+	if imageID, ok := imageIDs[data.Img]; ok {
+		data.Img = imageID
+	}
+
+	return data
+}
+
+func shapeImageID(shape sqlc.DiagramShape) string {
+	if shape.Data.Type != domain.DiagramShapeTypeImage {
+		return ""
+	}
+
+	return shape.Data.Img
+}
+
+func imageBlobFromShape(row sqlc.ImageDeleteForShapeRow) ImageBlob {
+	return ImageBlob{Hash: row.BlobHash, Mime: row.Mime}
+}
+
+func imageBlobsFromDiagram(rows []sqlc.ImageDeleteForDiagramRow) []ImageBlob {
+	blobs := make([]ImageBlob, 0, len(rows))
+	for _, row := range rows {
+		blobs = append(blobs, ImageBlob{Hash: row.BlobHash, Mime: row.Mime})
+	}
+
+	return blobs
 }

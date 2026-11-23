@@ -154,3 +154,41 @@ func (r iteratorForDiagramShapeBulkInsert) Err() error {
 func (q *Queries) DiagramShapeBulkInsert(ctx context.Context, arg []DiagramShapeBulkInsertParams) (int64, error) {
 	return q.db.CopyFrom(ctx, []string{"diagram_shapes"}, []string{"id", "diagram_id", "data", "created_at", "updated_at"}, &iteratorForDiagramShapeBulkInsert{rows: arg})
 }
+
+// iteratorForImageBulkInsert implements pgx.CopyFromSource.
+type iteratorForImageBulkInsert struct {
+	rows                 []ImageBulkInsertParams
+	skippedFirstNextCall bool
+}
+
+func (r *iteratorForImageBulkInsert) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	if !r.skippedFirstNextCall {
+		r.skippedFirstNextCall = true
+		return true
+	}
+	r.rows = r.rows[1:]
+	return len(r.rows) > 0
+}
+
+func (r iteratorForImageBulkInsert) Values() ([]interface{}, error) {
+	return []interface{}{
+		r.rows[0].ID,
+		r.rows[0].DiagramID,
+		r.rows[0].BlobHash,
+		r.rows[0].Preview,
+		r.rows[0].OriginalName,
+		r.rows[0].Mime,
+		r.rows[0].CreatedAt,
+	}, nil
+}
+
+func (r iteratorForImageBulkInsert) Err() error {
+	return nil
+}
+
+func (q *Queries) ImageBulkInsert(ctx context.Context, arg []ImageBulkInsertParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"images"}, []string{"id", "diagram_id", "blob_hash", "preview", "original_name", "mime", "created_at"}, &iteratorForImageBulkInsert{rows: arg})
+}

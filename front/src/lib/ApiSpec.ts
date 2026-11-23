@@ -12,6 +12,12 @@
 
 export type DiagramCollaboratorPermissionEnum = "OWNER" | "VIEW" | "EDIT";
 
+/**
+ * - full: FULLSCREEN
+ * - download: ORIGINAL
+ */
+export type ImageVariantEnum = "full" | "download";
+
 /** Horizontal text alignment. Defaults to center. */
 export type DiagramShapeTextAlignEnum = "left" | "center" | "right";
 
@@ -21,8 +27,9 @@ export type DiagramShapeTextAlignEnum = "left" | "center" | "right";
  * - D: DIAMOND
  * - B: BOX
  * - T: TEXT
+ * - I: IMAGE
  */
-export type DiagramShapeTypeEnum = "S" | "E" | "D" | "B" | "T";
+export type DiagramShapeTypeEnum = "S" | "E" | "D" | "B" | "T" | "I";
 
 /**
  * ID
@@ -77,6 +84,27 @@ export interface EmbedListResponse {
 
 export interface EmbedDataResponse {
   diagramInfo: DiagramInfo;
+}
+
+export interface ImageUploadResponse {
+  /** ID */
+  id: Ulid;
+  /** Sanitized original file name. */
+  originalName: string;
+  /** Detected MIME type, image/png or image/jpeg. */
+  mime: string;
+  /**
+   * Original image width in pixels.
+   * @format int32
+   */
+  width: number;
+  /**
+   * Original image height in pixels.
+   * @format int32
+   */
+  height: number;
+  /** Preview as data URL. */
+  pv: string;
 }
 
 export interface IndexResponse {
@@ -336,7 +364,7 @@ export interface DiagramShape {
    */
   sc: string;
   /**
-   * Text.
+   * Text. Image shape gets placeholder text from the client.
    * @minLength 1
    */
   txt: string;
@@ -344,6 +372,10 @@ export interface DiagramShape {
   ta?: DiagramShapeTextAlignEnum;
   /** Order key for layering */
   o: string;
+  /** Image ID for IMAGE shape. Empty for other types. */
+  img?: string;
+  /** Image preview data URL for IMAGE shape. Server-side read-only. */
+  pv?: string;
 }
 
 export interface DiagramConnection {
@@ -1058,6 +1090,73 @@ export class ApiSpec<SecurityDataType extends unknown> {
      * No description
      *
      * @tags DiagramService
+     * @name ImageUpload
+     * @summary Upload image to diagram.
+     * @request POST:/diagrams/{diagramId}/images
+     * @secure
+     * @response `200` `ImageUploadResponse` A successful response.
+     * @response `400` `GeneralError`
+     * @response `401` `GeneralError`
+     * @response `403` `GeneralError`
+     * @response `404` `GeneralError`
+     * @response `413` `GeneralError`
+     * @response `429` `GeneralError`
+     * @response `500` `GeneralError`
+     */
+    imageUpload: (
+      diagramId: Ulid,
+      data: {
+        /**
+         * PNG or JPEG image.
+         * @format binary
+         */
+        file: File;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.http.request<ImageUploadResponse, GeneralError>({
+        path: `/diagrams/${diagramId}/images`,
+        method: "POST",
+        body: data,
+        secure: true,
+        type: "multipart/form-data",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags DiagramService
+     * @name ImageGet
+     * @summary Get image variant of diagram.
+     * @request GET:/diagrams/{diagramId}/images/{imageId}/{variant}
+     * @secure
+     * @response `200` `File`
+     * @response `400` `GeneralError`
+     * @response `401` `GeneralError`
+     * @response `403` `GeneralError`
+     * @response `404` `GeneralError`
+     * @response `429` `GeneralError`
+     * @response `500` `GeneralError`
+     */
+    imageGet: (
+      diagramId: Ulid,
+      imageId: Ulid,
+      variant: ImageVariantEnum,
+      params: RequestParams = {},
+    ) =>
+      this.http.request<File, GeneralError>({
+        path: `/diagrams/${diagramId}/images/${imageId}/${variant}`,
+        method: "GET",
+        secure: true,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags DiagramService
      * @name ConnectionUpsert
      * @summary Upsert connection on diagram.
      * @request POST:/diagrams/{diagramId}/connections
@@ -1308,6 +1407,32 @@ export class ApiSpec<SecurityDataType extends unknown> {
         path: `/embed/${token}`,
         method: "GET",
         format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags DiagramService
+     * @name EmbedImageGet
+     * @summary Get image variant by public embed token.
+     * @request GET:/embed/{token}/images/{imageId}/{variant}
+     * @response `200` `File`
+     * @response `400` `GeneralError`
+     * @response `403` `GeneralError`
+     * @response `404` `GeneralError`
+     * @response `429` `GeneralError`
+     * @response `500` `GeneralError`
+     */
+    embedImageGet: (
+      token: string,
+      imageId: Ulid,
+      variant: ImageVariantEnum,
+      params: RequestParams = {},
+    ) =>
+      this.http.request<File, GeneralError>({
+        path: `/embed/${token}/images/${imageId}/${variant}`,
+        method: "GET",
         ...params,
       }),
   };

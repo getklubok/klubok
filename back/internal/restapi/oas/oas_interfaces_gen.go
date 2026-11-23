@@ -85,6 +85,10 @@ type EmbedGetRes interface {
 	embedGetRes()
 }
 
+type EmbedImageGetRes interface {
+	embedImageGetRes()
+}
+
 type EmbedListRes interface {
 	embedListRes()
 }
@@ -99,6 +103,14 @@ type HealthLiveRes interface {
 
 type HealthReadyRes interface {
 	healthReadyRes()
+}
+
+type ImageGetRes interface {
+	imageGetRes()
+}
+
+type ImageUploadRes interface {
+	imageUploadRes()
 }
 
 type IndexRes interface {

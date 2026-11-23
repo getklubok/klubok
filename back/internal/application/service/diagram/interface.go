@@ -3,6 +3,7 @@ package diagram
 import (
 	"context"
 
+	"klubok/internal/application/service/image"
 	"klubok/internal/application/websocket"
 	"klubok/internal/db"
 	"klubok/internal/db/sqlc"
@@ -33,6 +34,9 @@ type Querier interface {
 	DiagramCollaboratorList(ctx context.Context, diagramID string) ([]sqlc.DiagramCollaboratorListRow, error)
 	DiagramCollaboratorDelete(ctx context.Context, diagramID string, collaboratorID string) error
 	DiagramCollaboratorFlatList(ctx context.Context, diagramID string) ([]sqlc.DiagramCollaborator, error)
+
+	ImagePreviewListByDiagram(ctx context.Context, diagramID string) ([]sqlc.ImagePreviewListByDiagramRow, error)
+	ImageListByDiagram(ctx context.Context, diagramID string) ([]sqlc.Image, error)
 }
 
 var _ Querier = (*sqlc.Queries)(nil)
@@ -40,7 +44,9 @@ var _ Querier = (*sqlc.Queries)(nil)
 type DBUseCase interface {
 	DiagramCreate(ctx context.Context, id string, title string, collaborator sqlc.DiagramCollaboratorUpsertParams) (sqlc.DiagramGetByUserRow, error)
 	DiagramClone(ctx context.Context, params db.DiagramCloneParams) (sqlc.DiagramGetByUserRow, error)
+	DiagramDeleteWithImages(ctx context.Context, diagramID string) ([]db.ImageBlob, error)
 	DiagramShapeBatchUpsert(ctx context.Context, diagramID string, shapes []domain.DiagramShape) error
+	DiagramShapeDeleteWithImage(ctx context.Context, diagramID string, shapeID string) ([]db.ImageBlob, error)
 	DiagramConnectionBatchUpsert(ctx context.Context, diagramID string, connections []domain.DiagramConnection) error
 }
 
@@ -52,3 +58,9 @@ type WebSocketManager interface {
 }
 
 var _ WebSocketManager = (*websocket.Manager)(nil)
+
+type BlobCleaner interface {
+	EnqueueCleanup(blobs []image.Blob)
+}
+
+var _ BlobCleaner = (*image.Service)(nil)

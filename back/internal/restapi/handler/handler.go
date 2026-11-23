@@ -17,6 +17,7 @@ type Handler struct {
 	oas.SSOHandler
 	oas.EmbedHandler
 	oas.EmbedPublicHandler
+	oas.ImageHandler
 }
 
 func NewHandler(
@@ -32,6 +33,7 @@ func NewHandler(
 	ssoHandler oas.SSOHandler,
 	embedHandler oas.EmbedHandler,
 	embedPublicHandler oas.EmbedPublicHandler,
+	imageHandler oas.ImageHandler,
 ) *Handler {
 	return &Handler{
 		IndexHandler:        indexHandler,
@@ -46,5 +48,6 @@ func NewHandler(
 		SSOHandler:          ssoHandler,
 		EmbedHandler:        embedHandler,
 		EmbedPublicHandler:  embedPublicHandler,
+		ImageHandler:        imageHandler,
 	}
 }

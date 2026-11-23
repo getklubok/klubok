@@ -1,11 +1,18 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 
 	"klubok/internal/domain"
 	"klubok/internal/restapi/oas"
 )
+
+// imageShapeText — текст-заглушка Image-шейпа: контракт требует непустой txt.
+const imageShapeText = "i"
+
+// ErrInvalidShape — шейп не прошёл доменную валидацию.
+var ErrInvalidShape = errors.New("invalid shape")
 
 func diagramShapesToDomain(src []oas.DiagramShape) []domain.DiagramShape {
 	if src == nil {
@@ -31,7 +38,7 @@ func diagramShapeToDomain(src oas.DiagramShape) (domain.DiagramShape, error) {
 		return domain.DiagramShape{}, fmt.Errorf("convert shape type: %w", err)
 	}
 
-	return domain.DiagramShape{
+	shape := domain.DiagramShape{
 		ID:        domain.ShapeID(src.ID),
 		Type:      typ,
 		Left:      src.L,
@@ -45,7 +52,16 @@ func diagramShapeToDomain(src oas.DiagramShape) (domain.DiagramShape, error) {
 		Text:      src.Txt,
 		TextAlign: diagramShapeTextAlignToDomain(src.Ta),
 		Order:     src.O,
-	}, nil
+		// pv приходит только на чтение: присланное клиентом значение игнорируется.
+		Img: src.Img.Or(""),
+	}
+
+	// У Image-шейпа нет видимого текста, но контракт требует непустой txt.
+	if typ == domain.DiagramShapeTypeImage && shape.Text == "" {
+		shape.Text = imageShapeText
+	}
+
+	return shape, nil
 }
 
 func diagramShapesFromDomain(src []domain.DiagramShape) []oas.DiagramShape {
@@ -82,7 +98,7 @@ func diagramShapeFromDomain(src domain.DiagramShape) (oas.DiagramShape, error) {
 		src.Height = domain.DefaultShapeSize
 	}
 
-	return oas.DiagramShape{
+	shape := oas.DiagramShape{
 		ID:  oas.Ulid(src.ID),
 		Tp:  typ,
 		L:   src.Left,
@@ -96,7 +112,17 @@ func diagramShapeFromDomain(src domain.DiagramShape) (oas.DiagramShape, error) {
 		Txt: src.Text,
 		Ta:  oas.NewOptDiagramShapeTextAlignEnum(diagramShapeTextAlignFromDomain(src.TextAlign)),
 		O:   src.Order,
-	}, nil
+	}
+
+	if src.Img != "" {
+		shape.Img = oas.NewOptString(src.Img)
+	}
+
+	if src.Pv != "" {
+		shape.Pv = oas.NewOptString(src.Pv)
+	}
+
+	return shape, nil
 }
 
 func diagramShapeTextAlignToDomain(src oas.OptDiagramShapeTextAlignEnum) domain.DiagramShapeTextAlign {
@@ -153,6 +179,8 @@ func diagramShapeTypeToDomain(src oas.DiagramShapeTypeEnum) (domain.DiagramShape
 		return domain.DiagramShapeTypeBox, nil
 	case oas.DiagramShapeTypeEnumT:
 		return domain.DiagramShapeTypeText, nil
+	case oas.DiagramShapeTypeEnumI:
+		return domain.DiagramShapeTypeImage, nil
 	}
 
 	return domain.DiagramShapeType(""), fmt.Errorf("unknown shape type: %s", src)
@@ -170,6 +198,8 @@ func diagramShapeTypeFromDomain(src domain.DiagramShapeType) (oas.DiagramShapeTy
 		return oas.DiagramShapeTypeEnumB, nil
 	case domain.DiagramShapeTypeText:
 		return oas.DiagramShapeTypeEnumT, nil
+	case domain.DiagramShapeTypeImage:
+		return oas.DiagramShapeTypeEnumI, nil
 	}
 
 	// Backward compatibility
@@ -178,4 +208,22 @@ func diagramShapeTypeFromDomain(src domain.DiagramShapeType) (oas.DiagramShapeTy
 	}
 
 	return oas.DiagramShapeTypeEnum(""), fmt.Errorf("unknown shape type: %s", src)
+}
+
+// validateShape проверяет связку типа шейпа и ссылки на изображение: она обязана
+// быть только у Image-шейпа и обязана быть корректным ULID.
+func validateShape(shape domain.DiagramShape) error {
+	if shape.Type == domain.DiagramShapeTypeImage {
+		if !domain.IsID(shape.Img) {
+			return fmt.Errorf("%w: image shape has invalid img %q", ErrInvalidShape, shape.Img)
+		}
+
+		return nil
+	}
+
+	if shape.Img != "" {
+		return fmt.Errorf("%w: img is allowed only for image shape", ErrInvalidShape)
+	}
+
+	return nil
 }
