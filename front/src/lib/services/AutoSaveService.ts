@@ -96,9 +96,9 @@ export class AutoSaveService {
         this.currentDiagramId = diagramId;
     }
 
-    setInitialState(shapes: ShapeElement[], connections: ConnectionElement[]) {
-        this.lastSavedShapes = shapes;
-        this.lastSavedConnections = connections;
+    setInitialState(currShapes: ShapeElement[], currConnections: ConnectionElement[]) {
+        this.lastSavedShapes = currShapes;
+        this.lastSavedConnections = currConnections;
     }
 
     triggerAutoSave() {
