@@ -164,7 +164,7 @@ jobs:
           format: table
 
       - name: Run OWASP/cve-lite-cli for code
-        uses: OWASP/cve-lite-cli@1d0c9ff18a744756516b3cdebc94ad6e55bd4020 # v1.41.4
+        uses: OWASP/cve-lite-cli@c2a8b2380052f783d83915866a4a1b0307fa76ad # v1.42.0
         with:
           path: ./front
           version: "1.41.0"
