@@ -558,6 +558,24 @@ code {
     font-weight: 800;
 }
 
+.highlights {
+    max-width: min(720px, 100%);
+    margin: clamp(32px, 5vw, 48px) auto 0;
+    padding: 0;
+    list-style: none;
+    text-align: left;
+    font-size: 0.98rem;
+    line-height: 1.8;
+    columns: 2;
+    column-gap: clamp(28px, 5vw, 64px);
+}
+
+.highlights li {
+    padding-left: 1.7em;
+    text-indent: -1.7em;
+    break-inside: avoid;
+}
+
 /* Open source / self-hosted */
 
 .pillar-grid {
@@ -1026,6 +1044,10 @@ code {
 
     .more-features {
         grid-template-columns: 1fr;
+    }
+
+    .highlights {
+        columns: 1;
     }
 
     .faq-answer {
