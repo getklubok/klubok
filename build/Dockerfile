@@ -14,7 +14,7 @@ RUN echo -e "const appVersion = '${APP_VERSION}';\nexport default appVersion;" >
 RUN bun install --ignore-scripts
 RUN bun run build
 
-FROM golang:1.26-alpine3.23 AS back
+FROM golang:1.26-alpine3.24 AS back
 
 WORKDIR /app
 
@@ -29,7 +29,7 @@ RUN go build -mod=readonly -trimpath -o klubok -ldflags="-w -X 'main.appVersion=
 RUN make tool-database-goose
 RUN cp bin/goose .
 
-FROM alpine:3.23
+FROM alpine:3.24
 
 WORKDIR /app
 

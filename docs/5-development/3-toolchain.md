@@ -22,7 +22,7 @@
     ```
 - `build/Dockerfile` — без указания патча, чтобы сборка была на последнем патче:
     ```dockerfile
-    FROM golang:1.26-alpine3.23 AS back
+    FROM golang:1.26-alpine3.24 AS back
     ```
 - `.github/workflows/audit.yml` — `actions/setup-go` читает версию из `go.mod`:
     ```yaml
@@ -35,7 +35,7 @@
 В `build/Dockerfile` версия Alpine указывается без патча:
 
 ```dockerfile
-FROM golang:1.26-alpine3.23 AS back
+FROM golang:1.26-alpine3.24 AS back
 ...
-FROM alpine:3.23
+FROM alpine:3.24
 ```
