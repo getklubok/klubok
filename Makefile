@@ -29,3 +29,25 @@ build-docker: require-version
 .PHONY: release
 release:
 	@$(HOME)/.local/bin/release.sh $(if $(DRY_RUN),--dry-run)
+
+# Управление dev-серверами (БД + back + front), логика в scripts/dev.sh.
+# Выборочный таргет передаётся через ARGS: make dev ARGS=back, make dev-logs ARGS="-f back".
+.PHONY: dev
+dev:
+	@bash scripts/dev.sh start $(ARGS)
+
+.PHONY: dev-stop
+dev-stop:
+	@bash scripts/dev.sh stop $(ARGS)
+
+.PHONY: dev-restart
+dev-restart:
+	@bash scripts/dev.sh restart $(ARGS)
+
+.PHONY: dev-status
+dev-status:
+	@bash scripts/dev.sh status || true
+
+.PHONY: dev-logs
+dev-logs:
+	@bash scripts/dev.sh logs $(ARGS)

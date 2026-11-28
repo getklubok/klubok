@@ -17,3 +17,10 @@ In repositories indexed by CodeGraph (a `.codegraph/` directory exists at the re
 
 If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
 <!-- CODEGRAPH_END -->
+
+<!-- ZCODE_DESKTOP_START -->
+## ZCode Desktop
+
+- Если ты менял что-то в ./site, тогда можешь открыть файл ./site/index.html в своем встроенном браузере
+- Dev-серверы (БД + back + front) запускай сам, без моей помощи, скриптом из корня проекта: `make dev` — старт, `make dev-status` — статус, `make dev-stop` — остановка, `make dev-logs ARGS="-f back"` — логи. После запуска приложение доступно в твоем встроенном браузере по адресу: http://localhost:5173
+<!-- ZCODE_DESKTOP_END -->

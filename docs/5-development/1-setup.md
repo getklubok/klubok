@@ -6,8 +6,16 @@
 - [Web](http://127.0.0.1:5173/)
 - [Health Live](http://127.0.0.1:5172/api/health/live)
 - [Health Ready](http://127.0.0.1:5172/api/health/ready)
-- [Swagger](http://127.0.0.1:5172/api/swagger.json)
-- [API Docs](http://127.0.0.1:5172/api/docs)
+
+## Быстрый запуск dev-серверов
+
+Вместо ручного запуска в двух терминалах можно управлять всем из корня проекта (требуется выполненный `make init` в `back` и `front`):
+
+- `make dev` — запускает БД, backend и frontend в правильном порядке и фоновом режиме (логи в `.run/logs/`), безопасно запускать повторно;
+- `make dev-status` — статус серверов;
+- `make dev-stop` — останавливает frontend, backend и контейнер PostgreSQL;
+- `make dev-restart` — перезапуск; `make dev-logs ARGS="-f back"` — просмотр логов;
+- выборочный таргет: `make dev ARGS=back`, `make dev ARGS=front`.
 
 ## Backend
 
