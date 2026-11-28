@@ -20,6 +20,7 @@ type Querier interface {
 	DiagramShapeUpsert(ctx context.Context, arg sqlc.DiagramShapeUpsertParams) error
 	DiagramShapeDelete(ctx context.Context, iD string, diagramID string) error
 	DiagramShapeList(ctx context.Context, diagramID string) ([]sqlc.DiagramShape, error)
+	DiagramShapeImageCountExcluding(ctx context.Context, diagramID string, ids []string) (int32, error)
 
 	DiagramConnectionUpsert(ctx context.Context, arg sqlc.DiagramConnectionUpsertParams) error
 	DiagramConnectionDelete(ctx context.Context, arg sqlc.DiagramConnectionDeleteParams) error

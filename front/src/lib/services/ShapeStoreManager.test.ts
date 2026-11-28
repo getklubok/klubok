@@ -80,6 +80,30 @@ describe('ShapeStoreManager', () => {
         });
     });
 
+    describe('countByType', () => {
+        it('считает только шейпы указанного типа', () => {
+            const deps = makeDeps({
+                getShapes: () => [
+                    makeShape({ id: 's1', type: 'image' }),
+                    makeShape({ id: 's2', type: 'image' }),
+                    makeShape({ id: 's3', type: 'square' }),
+                ],
+            });
+            const manager = new ShapeStoreManager(deps);
+
+            expect(manager.countByType('image')).toBe(2);
+            expect(manager.countByType('square')).toBe(1);
+            expect(manager.countByType('box')).toBe(0);
+        });
+
+        it('возвращает 0 для пустого store', () => {
+            const deps = makeDeps();
+            const manager = new ShapeStoreManager(deps);
+
+            expect(manager.countByType('image')).toBe(0);
+        });
+    });
+
     describe('update', () => {
         it('обновляет существующий элемент', () => {
             const original = makeShape({ id: 's1', text: 'old' });

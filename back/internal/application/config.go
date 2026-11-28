@@ -29,6 +29,7 @@ type Configuration struct {
 	Mailer    Mailer
 	Storage   Storage
 	Images    Images
+	Diagram   Diagram
 	Metrics   Metrics
 	Tracer    Tracer
 	Feature   Feature
@@ -263,6 +264,20 @@ func (i Images) validate() error {
 	}
 	if i.FullscreenMaxSidePx <= 0 {
 		return errors.New("IMAGE_FULLSCREEN_MAX_SIDE_PX must be positive")
+	}
+
+	return nil
+}
+
+// Diagram конфигурация ограничений диаграмм.
+type Diagram struct {
+	// MaxImageShapes - максимальное количество Image-элементов в одной диаграмме.
+	MaxImageShapes int `env:"DIAGRAM_MAX_IMAGE_SHAPES" envDefault:"50"`
+}
+
+func (d Diagram) validate() error {
+	if d.MaxImageShapes <= 0 {
+		return errors.New("DIAGRAM_MAX_IMAGE_SHAPES must be positive")
 	}
 
 	return nil
@@ -549,6 +564,10 @@ func LoadConfiguration() (*Configuration, error) {
 		return nil, fmt.Errorf("validate images: %w", err)
 	}
 
+	if err := config.Diagram.validate(); err != nil {
+		return nil, fmt.Errorf("validate diagram: %w", err)
+	}
+
 	if err := config.Feature.Captcha.validate(); err != nil {
 		return nil, fmt.Errorf("validate captcha: %w", err)
 	}
@@ -570,16 +589,8 @@ func LoadConfiguration() (*Configuration, error) {
 		return nil, fmt.Errorf("validate auth sso: %w", err)
 	}
 
-	if config.Feature.Auth.SSO.Enabled {
-		if err := validateHTTPURL(config.AppBaseURL); err != nil {
-			return nil, fmt.Errorf("invalid APP_BASE_URL: %w", err)
-		}
-	}
-
-	if config.Feature.Auth.Email.Enabled {
-		if err := config.Mailer.validate(); err != nil {
-			return nil, fmt.Errorf("validate mailer: %w", err)
-		}
+	if err := validateAuthEnvironment(&config); err != nil {
+		return nil, err
 	}
 
 	if err := config.Feature.validate(); err != nil {
@@ -587,6 +598,24 @@ func LoadConfiguration() (*Configuration, error) {
 	}
 
 	return &config, nil
+}
+
+// validateAuthEnvironment проверяет настройки, зависящие от включённых способов входа:
+// базовый URL для редиректа SSO и данные почтового сервера для email-аутентификации.
+func validateAuthEnvironment(config *Configuration) error {
+	if config.Feature.Auth.SSO.Enabled {
+		if err := validateHTTPURL(config.AppBaseURL); err != nil {
+			return fmt.Errorf("invalid APP_BASE_URL: %w", err)
+		}
+	}
+
+	if config.Feature.Auth.Email.Enabled {
+		if err := config.Mailer.validate(); err != nil {
+			return fmt.Errorf("validate mailer: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (f Feature) validate() error {

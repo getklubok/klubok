@@ -55,6 +55,7 @@ var allEnvList = []string{ //nolint:gochecknoglobals // it's ok
 	"IMAGE_MAX_PIXELS",
 	"IMAGE_PREVIEW_MAX_SIDE_PX",
 	"IMAGE_FULLSCREEN_MAX_SIDE_PX",
+	"DIAGRAM_MAX_IMAGE_SHAPES",
 	"METRICS_PORT",
 	"METRICS_READ_TIMEOUT",
 	"METRICS_READ_HEADER_TIMEOUT",
@@ -153,6 +154,8 @@ func TestLoadConfiguration(t *testing.T) {
 				t.Setenv("IMAGE_MAX_PIXELS", "1000000")
 				t.Setenv("IMAGE_PREVIEW_MAX_SIDE_PX", "128")
 				t.Setenv("IMAGE_FULLSCREEN_MAX_SIDE_PX", "1024")
+
+				t.Setenv("DIAGRAM_MAX_IMAGE_SHAPES", "10")
 
 				t.Setenv("METRICS_PORT", "8080")
 
@@ -264,6 +267,9 @@ func TestLoadConfiguration(t *testing.T) {
 					MaxPixels:           1000000,
 					PreviewMaxSidePx:    128,
 					FullscreenMaxSidePx: 1024,
+				},
+				Diagram: Diagram{
+					MaxImageShapes: 10,
 				},
 				Metrics: Metrics{
 					Port: 8080,
@@ -383,6 +389,9 @@ func TestLoadConfiguration(t *testing.T) {
 					MaxPixels:           12000000,
 					PreviewMaxSidePx:    250,
 					FullscreenMaxSidePx: 2048,
+				},
+				Diagram: Diagram{
+					MaxImageShapes: 50,
 				},
 				Metrics: Metrics{
 					Port: 6060,
@@ -677,6 +686,67 @@ func TestImages_LoadConfiguration(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.Equal(t, tt.want, got.Images)
+		})
+	}
+}
+
+func TestDiagram_LoadConfiguration(t *testing.T) {
+	tests := []struct {
+		name    string
+		setEnv  func(t *testing.T)
+		want    Diagram
+		wantErr string
+	}{
+		{
+			name:   "Should load default diagram limits",
+			setEnv: func(t *testing.T) { t.Helper() },
+			want: Diagram{
+				MaxImageShapes: 50,
+			},
+		},
+		{
+			name: "Should load custom diagram limits",
+			setEnv: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("DIAGRAM_MAX_IMAGE_SHAPES", "10")
+			},
+			want: Diagram{
+				MaxImageShapes: 10,
+			},
+		},
+		{
+			name: "Should fail on zero max image shapes",
+			setEnv: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("DIAGRAM_MAX_IMAGE_SHAPES", "0")
+			},
+			wantErr: "validate diagram: DIAGRAM_MAX_IMAGE_SHAPES must be positive",
+		},
+		{
+			name: "Should fail on negative max image shapes",
+			setEnv: func(t *testing.T) {
+				t.Helper()
+				t.Setenv("DIAGRAM_MAX_IMAGE_SHAPES", "-1")
+			},
+			wantErr: "validate diagram: DIAGRAM_MAX_IMAGE_SHAPES must be positive",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resetConfigEnv(t)
+			setValidBaseEnv(t)
+			tt.setEnv(t)
+
+			got, err := LoadConfiguration()
+			if tt.wantErr != "" {
+				assert.EqualError(t, err, tt.wantErr)
+
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got.Diagram)
 		})
 	}
 }

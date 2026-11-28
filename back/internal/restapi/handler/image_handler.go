@@ -352,7 +352,7 @@ func asciiPart(s string) string {
 
 	for _, r := range s {
 		if r >= ' ' && r < 0x7f && r != '"' && r != '\\' {
-			b.WriteRune(r)
+			_, _ = b.WriteRune(r)
 
 			underscore = false
 
@@ -360,7 +360,7 @@ func asciiPart(s string) string {
 		}
 
 		if !underscore {
-			b.WriteByte('_')
+			_ = b.WriteByte('_')
 			underscore = true
 		}
 	}
@@ -380,11 +380,11 @@ func rfc5987Encode(name string) string {
 	for i := range len(name) {
 		c := name[i]
 		if isAttrChar(c) {
-			b.WriteByte(c)
+			_ = b.WriteByte(c)
 		} else {
-			b.WriteByte('%')
-			b.WriteByte(hexDigits[c>>4])
-			b.WriteByte(hexDigits[c&0x0f])
+			_ = b.WriteByte('%')
+			_ = b.WriteByte(hexDigits[c>>4])
+			_ = b.WriteByte(hexDigits[c&0x0f])
 		}
 	}
 

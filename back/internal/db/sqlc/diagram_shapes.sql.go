@@ -50,6 +50,20 @@ func (q *Queries) DiagramShapeGet(ctx context.Context, iD string, diagramID stri
 	return i, err
 }
 
+const diagramShapeImageCountExcluding = `-- name: DiagramShapeImageCountExcluding :one
+SELECT count(*) FROM diagram_shapes
+WHERE diagram_id = $1
+AND data->>'tp' = 'IMAGE'
+AND NOT (id = ANY($2::text[]))
+`
+
+func (q *Queries) DiagramShapeImageCountExcluding(ctx context.Context, diagramID string, ids []string) (int32, error) {
+	row := q.db.QueryRow(ctx, diagramShapeImageCountExcluding, diagramID, ids)
+	var count int32
+	err := row.Scan(&count)
+	return count, err
+}
+
 const diagramShapeList = `-- name: DiagramShapeList :many
 SELECT id, diagram_id, data, created_at, updated_at FROM diagram_shapes
 WHERE diagram_id = $1

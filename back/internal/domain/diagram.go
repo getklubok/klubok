@@ -17,6 +17,7 @@ type DiagramInfo struct {
 	ID                DiagramID
 	Title             string
 	Permission        DiagramCollaboratorPermission
+	MaxImages         int
 	Shapes            []DiagramShape
 	Connections       []DiagramConnection
 	ShapeCommentStats []DiagramShapeCommentStat

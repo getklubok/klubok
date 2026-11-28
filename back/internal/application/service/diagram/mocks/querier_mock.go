@@ -951,6 +951,64 @@ func (_c *QuerierMock_DiagramShapeDelete_Call) RunAndReturn(run func(context.Con
 	return _c
 }
 
+// DiagramShapeImageCountExcluding provides a mock function with given fields: ctx, diagramID, ids
+func (_m *QuerierMock) DiagramShapeImageCountExcluding(ctx context.Context, diagramID string, ids []string) (int32, error) {
+	ret := _m.Called(ctx, diagramID, ids)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DiagramShapeImageCountExcluding")
+	}
+
+	var r0 int32
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, []string) (int32, error)); ok {
+		return rf(ctx, diagramID, ids)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, []string) int32); ok {
+		r0 = rf(ctx, diagramID, ids)
+	} else {
+		r0 = ret.Get(0).(int32)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, []string) error); ok {
+		r1 = rf(ctx, diagramID, ids)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// QuerierMock_DiagramShapeImageCountExcluding_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DiagramShapeImageCountExcluding'
+type QuerierMock_DiagramShapeImageCountExcluding_Call struct {
+	*mock.Call
+}
+
+// DiagramShapeImageCountExcluding is a helper method to define mock.On call
+//   - ctx context.Context
+//   - diagramID string
+//   - ids []string
+func (_e *QuerierMock_Expecter) DiagramShapeImageCountExcluding(ctx interface{}, diagramID interface{}, ids interface{}) *QuerierMock_DiagramShapeImageCountExcluding_Call {
+	return &QuerierMock_DiagramShapeImageCountExcluding_Call{Call: _e.mock.On("DiagramShapeImageCountExcluding", ctx, diagramID, ids)}
+}
+
+func (_c *QuerierMock_DiagramShapeImageCountExcluding_Call) Run(run func(ctx context.Context, diagramID string, ids []string)) *QuerierMock_DiagramShapeImageCountExcluding_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].([]string))
+	})
+	return _c
+}
+
+func (_c *QuerierMock_DiagramShapeImageCountExcluding_Call) Return(_a0 int32, _a1 error) *QuerierMock_DiagramShapeImageCountExcluding_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *QuerierMock_DiagramShapeImageCountExcluding_Call) RunAndReturn(run func(context.Context, string, []string) (int32, error)) *QuerierMock_DiagramShapeImageCountExcluding_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DiagramShapeList provides a mock function with given fields: ctx, diagramID
 func (_m *QuerierMock) DiagramShapeList(ctx context.Context, diagramID string) ([]sqlc.DiagramShape, error) {
 	ret := _m.Called(ctx, diagramID)

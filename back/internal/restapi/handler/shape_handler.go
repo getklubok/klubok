@@ -2,9 +2,11 @@ package handler
 
 import (
 	"context"
+	"errors"
 
 	"go.uber.org/zap"
 
+	"klubok/internal/application/service/diagram"
 	"klubok/internal/application/zapctx"
 	"klubok/internal/domain"
 	"klubok/internal/restapi/oas"
@@ -89,6 +91,11 @@ func (h *Shape) ShapeUpsert(
 
 	err = h.diagramService.ShapeUpsert(ctx, claims.UserID, diagramID, shape)
 	if err != nil {
+		if errors.Is(err, diagram.ErrImageLimitExceeded) {
+			log.Warn("Diagram image shapes limit exceeded")
+			return &oas.ShapeUpsertBadRequest{}, nil
+		}
+
 		log.Error("Upsert shape diagram",
 			zap.Error(err),
 		)
@@ -154,6 +161,11 @@ func (h *Shape) ShapeBatchUpsert(
 
 	err = h.diagramService.ShapeBatchUpsert(ctx, claims.UserID, diagramID, shapes)
 	if err != nil {
+		if errors.Is(err, diagram.ErrImageLimitExceeded) {
+			log.Warn("Diagram image shapes limit exceeded")
+			return &oas.ShapeBatchUpsertBadRequest{}, nil
+		}
+
 		log.Error("Batch upsert shapes diagram",
 			zap.Error(err),
 		)

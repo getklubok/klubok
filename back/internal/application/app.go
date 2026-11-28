@@ -203,7 +203,9 @@ func Run() error { //nolint:gocognit,gocyclo,cyclop,maintidx // It's ok
 		cfg.Feature.Auth.SSO.Enabled,
 	)
 
-	diagramService := diagram.NewService(queries, dbUseCase, wsManager, imageService, log)
+	diagramService := diagram.NewService(queries, dbUseCase, wsManager, imageService, diagram.Config{
+		MaxImageShapes: cfg.Diagram.MaxImageShapes,
+	}, log)
 	diagramHandler := handler.NewDiagram(diagramService, permissionService, wsManager, sanitizer, log)
 
 	embedService := embed.NewService(queries, log)

@@ -78,6 +78,8 @@ export STORAGE_LOCAL_PATH="./storage"
 # export IMAGE_PREVIEW_MAX_SIDE_PX=250
 # export IMAGE_FULLSCREEN_MAX_SIDE_PX=2048
 
+# export DIAGRAM_MAX_IMAGE_SHAPES=50
+
 # for integration tests
 # host=127.0.0.1
 export TEST_INTEGRATION_PG_PORT=5433

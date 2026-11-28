@@ -385,7 +385,7 @@ func sanitizeSSOUsername(preferredUsername string, email string) string {
 	var b strings.Builder
 	for _, r := range strings.ToLower(local) {
 		if isSSOUsernameChar(r) {
-			b.WriteRune(r)
+			_, _ = b.WriteRune(r)
 		}
 	}
 

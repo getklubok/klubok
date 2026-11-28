@@ -684,6 +684,13 @@ export class CanvasManager {
         if (!this.canvas || !this.diagramInfo) return;
         if (!this.deps.hasPermission(this.diagramInfo.permission)) return;
 
+        const maxImages = this.diagramInfo.maxImages;
+        if (maxImages && shapeStoreManager.countByType('image') >= maxImages) {
+            logger.mustWarn('Image limit reached:', maxImages);
+            showAlert({ message: 'Достигнут лимит изображений в диаграмме', type: 'danger' });
+            return;
+        }
+
         let uploaded: ImageUploadResponse;
         try {
             uploaded = await this.deps.imageUpload(this.diagramInfo.id, { file });

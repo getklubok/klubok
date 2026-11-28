@@ -3968,6 +3968,10 @@ func (s *DiagramInfo) encodeFields(e *jx.Encoder) {
 		s.Permission.Encode(e)
 	}
 	{
+		e.FieldStart("maxImages")
+		e.Int(s.MaxImages)
+	}
+	{
 		e.FieldStart("shapes")
 		e.ArrStart()
 		for _, elem := range s.Shapes {
@@ -3993,13 +3997,14 @@ func (s *DiagramInfo) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDiagramInfo = [6]string{
+var jsonFieldsNameOfDiagramInfo = [7]string{
 	0: "id",
 	1: "title",
 	2: "permission",
-	3: "shapes",
-	4: "connections",
-	5: "shapeCommentStats",
+	3: "maxImages",
+	4: "shapes",
+	5: "connections",
+	6: "shapeCommentStats",
 }
 
 // Decode decodes DiagramInfo from json.
@@ -4041,8 +4046,20 @@ func (s *DiagramInfo) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"permission\"")
 			}
-		case "shapes":
+		case "maxImages":
 			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.MaxImages = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"maxImages\"")
+			}
+		case "shapes":
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				s.Shapes = make([]DiagramShape, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -4060,7 +4077,7 @@ func (s *DiagramInfo) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"shapes\"")
 			}
 		case "connections":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				s.Connections = make([]DiagramConnection, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -4078,7 +4095,7 @@ func (s *DiagramInfo) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"connections\"")
 			}
 		case "shapeCommentStats":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				s.ShapeCommentStats = make([]DiagramShapeCommentStats, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -4105,7 +4122,7 @@ func (s *DiagramInfo) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111111,
+		0b01111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

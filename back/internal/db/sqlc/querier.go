@@ -39,6 +39,7 @@ type Querier interface {
 	DiagramShapeBulkInsert(ctx context.Context, arg []DiagramShapeBulkInsertParams) (int64, error)
 	DiagramShapeDelete(ctx context.Context, iD string, diagramID string) error
 	DiagramShapeGet(ctx context.Context, iD string, diagramID string) (DiagramShape, error)
+	DiagramShapeImageCountExcluding(ctx context.Context, diagramID string, ids []string) (int32, error)
 	DiagramShapeList(ctx context.Context, diagramID string) ([]DiagramShape, error)
 	DiagramShapeUpsert(ctx context.Context, arg DiagramShapeUpsertParams) error
 	EmbedCreate(ctx context.Context, arg EmbedCreateParams) (DiagramEmbed, error)

@@ -24,3 +24,9 @@ AND diagram_id = $2;
 -- name: DiagramShapeList :many
 SELECT * FROM diagram_shapes
 WHERE diagram_id = $1;
+
+-- name: DiagramShapeImageCountExcluding :one
+SELECT count(*) FROM diagram_shapes
+WHERE diagram_id = @diagram_id
+AND data->>'tp' = 'IMAGE'
+AND NOT (id = ANY(@ids::text[]));

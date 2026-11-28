@@ -772,12 +772,14 @@ func (*DiagramImportUnauthorized) diagramImportRes() {}
 
 // Ref: #/components/schemas/DiagramInfo
 type DiagramInfo struct {
-	ID                Ulid                              `json:"id"`
-	Title             DiagramTitle                      `json:"title"`
-	Permission        DiagramCollaboratorPermissionEnum `json:"permission"`
-	Shapes            []DiagramShape                    `json:"shapes"`
-	Connections       []DiagramConnection               `json:"connections"`
-	ShapeCommentStats []DiagramShapeCommentStats        `json:"shapeCommentStats"`
+	ID         Ulid                              `json:"id"`
+	Title      DiagramTitle                      `json:"title"`
+	Permission DiagramCollaboratorPermissionEnum `json:"permission"`
+	// Максимальное количество Image-элементов в диаграмме.
+	MaxImages         int                        `json:"maxImages"`
+	Shapes            []DiagramShape             `json:"shapes"`
+	Connections       []DiagramConnection        `json:"connections"`
+	ShapeCommentStats []DiagramShapeCommentStats `json:"shapeCommentStats"`
 }
 
 // GetID returns the value of ID.
@@ -793,6 +795,11 @@ func (s *DiagramInfo) GetTitle() DiagramTitle {
 // GetPermission returns the value of Permission.
 func (s *DiagramInfo) GetPermission() DiagramCollaboratorPermissionEnum {
 	return s.Permission
+}
+
+// GetMaxImages returns the value of MaxImages.
+func (s *DiagramInfo) GetMaxImages() int {
+	return s.MaxImages
 }
 
 // GetShapes returns the value of Shapes.
@@ -823,6 +830,11 @@ func (s *DiagramInfo) SetTitle(val DiagramTitle) {
 // SetPermission sets the value of Permission.
 func (s *DiagramInfo) SetPermission(val DiagramCollaboratorPermissionEnum) {
 	s.Permission = val
+}
+
+// SetMaxImages sets the value of MaxImages.
+func (s *DiagramInfo) SetMaxImages(val int) {
+	s.MaxImages = val
 }
 
 // SetShapes sets the value of Shapes.

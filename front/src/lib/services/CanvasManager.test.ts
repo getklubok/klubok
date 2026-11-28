@@ -59,6 +59,7 @@ const {
         update: vi.fn(),
         remove: vi.fn(),
         getMaxOrderKey: vi.fn().mockReturnValue(null),
+        countByType: vi.fn().mockReturnValue(0),
     },
     mockConnectionStoreManager: {
         add: vi.fn(),
@@ -235,6 +236,7 @@ describe('CanvasManager', () => {
         mockConnectionStoreManager.getByShapeId.mockReturnValue([]);
         mockConnectionStoreManager.getByShapeIds.mockReturnValue(undefined);
         mockShapeStoreManager.getById.mockReturnValue(undefined);
+        mockShapeStoreManager.countByType.mockReturnValue(0);
     });
 
     afterEach(() => {
@@ -1274,6 +1276,36 @@ describe('CanvasManager', () => {
             await manager.uploadImage({} as File, { x: 10, y: 10 });
 
             expect(imageUpload).not.toHaveBeenCalled();
+        });
+
+        it('не загружает файл при достижении лимита изображений', async () => {
+            const imageUpload = vi.fn();
+            const deps = makeDeps({ imageUpload });
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            manager.init(canvas);
+            manager.setDiagramInfo(makeDiagramInfo({ maxImages: 3 }));
+            mockShapeStoreManager.countByType.mockReturnValue(3);
+
+            await manager.uploadImage({} as File, { x: 10, y: 10 });
+
+            expect(imageUpload).not.toHaveBeenCalled();
+            expect(mockShapeStoreManager.add).not.toHaveBeenCalled();
+        });
+
+        it('загружает файл когда количество изображений ещё не достигло лимита', async () => {
+            const imageUpload = vi.fn().mockResolvedValue(uploadedResponse);
+            const deps = makeDeps({ imageUpload });
+            const manager = new CanvasManagerClass(deps);
+            const canvas = makeCanvas();
+            manager.init(canvas);
+            manager.setDiagramInfo(makeDiagramInfo({ maxImages: 3 }));
+            mockShapeStoreManager.countByType.mockReturnValue(2);
+
+            await manager.uploadImage({} as File, { x: 10, y: 10 });
+
+            expect(imageUpload).toHaveBeenCalledWith('d1', { file: {} });
+            expect(mockShapeStoreManager.add).toHaveBeenCalled();
         });
     });
 

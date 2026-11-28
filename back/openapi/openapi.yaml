@@ -1744,6 +1744,10 @@ components:
           $ref: "#/components/schemas/diagramTitle"
         permission:
           $ref: "#/components/schemas/DiagramCollaboratorPermissionEnum"
+        maxImages:
+          type: integer
+          minimum: 1
+          description: Максимальное количество Image-элементов в диаграмме.
         shapes:
           type: array
           items:
@@ -1763,6 +1767,7 @@ components:
         - id
         - title
         - permission
+        - maxImages
         - shapes
         - connections
         - shapeCommentStats

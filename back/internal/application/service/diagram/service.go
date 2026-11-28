@@ -20,6 +20,14 @@ import (
 // previewDataURLPrefix — префикс data URL для preview, который подставляется в pv шейпа.
 const previewDataURLPrefix = "data:image/jpeg;base64,"
 
+// ErrImageLimitExceeded — превышен лимит Image-элементов в диаграмме.
+var ErrImageLimitExceeded = errors.New("diagram image shapes limit exceeded")
+
+// Config задаёт ограничения диаграмм.
+type Config struct {
+	MaxImageShapes int
+}
+
 type shConCom struct {
 	shapes            []domain.DiagramShape
 	connections       []domain.DiagramConnection
@@ -31,6 +39,7 @@ type Service struct {
 	dbUseCase   DBUseCase
 	wsManager   WebSocketManager
 	blobCleaner BlobCleaner
+	cfg         Config
 
 	log *zap.Logger
 
@@ -43,6 +52,7 @@ func NewService(
 	dbUseCase DBUseCase,
 	wsManager WebSocketManager,
 	blobCleaner BlobCleaner,
+	cfg Config,
 	log *zap.Logger,
 ) *Service {
 	return &Service{
@@ -50,6 +60,7 @@ func NewService(
 		dbUseCase:   dbUseCase,
 		wsManager:   wsManager,
 		blobCleaner: blobCleaner,
+		cfg:         cfg,
 
 		log: log.Named("diagram_service"),
 
@@ -122,6 +133,7 @@ func (s *Service) Info(ctx context.Context, diagramID domain.DiagramID) (domain.
 		ID:                diagramID,
 		Title:             diagram.Title,
 		Permission:        domain.DiagramCollaboratorPermissionView,
+		MaxImages:         s.cfg.MaxImageShapes,
 		Shapes:            scs.shapes,
 		Connections:       scs.connections,
 		ShapeCommentStats: scs.shapeCommentStats,
@@ -147,6 +159,7 @@ func (s *Service) InfoByUser(ctx context.Context, diagramID domain.DiagramID, us
 		ID:                diagramID,
 		Title:             diagram.Title,
 		Permission:        diagram.Permission,
+		MaxImages:         s.cfg.MaxImageShapes,
 		Shapes:            scs.shapes,
 		Connections:       scs.connections,
 		ShapeCommentStats: scs.shapeCommentStats,
@@ -154,6 +167,15 @@ func (s *Service) InfoByUser(ctx context.Context, diagramID domain.DiagramID, us
 }
 
 func (s *Service) ShapeUpsert(ctx context.Context, userID domain.UserID, diagramID domain.DiagramID, shape domain.DiagramShape) error {
+	incomingImages := 0
+	if shape.Type == domain.DiagramShapeTypeImage {
+		incomingImages = 1
+	}
+
+	if err := s.checkImageLimit(ctx, diagramID, []string{shape.ID.String()}, incomingImages); err != nil {
+		return err
+	}
+
 	if err := s.querier.DiagramShapeUpsert(ctx, sqlc.DiagramShapeUpsertParams{
 		ID:        shape.ID.String(),
 		DiagramID: diagramID.String(),
@@ -195,6 +217,19 @@ func (s *Service) ShapeBatchUpsert(
 ) error {
 	if len(shapes) == 0 {
 		return nil
+	}
+
+	incomingIDs := make([]string, 0, len(shapes))
+	incomingImages := 0
+	for _, shape := range shapes {
+		incomingIDs = append(incomingIDs, shape.ID.String())
+		if shape.Type == domain.DiagramShapeTypeImage {
+			incomingImages++
+		}
+	}
+
+	if err := s.checkImageLimit(ctx, diagramID, incomingIDs, incomingImages); err != nil {
+		return err
 	}
 
 	if err := s.dbUseCase.DiagramShapeBatchUpsert(ctx, diagramID.String(), shapes); err != nil {
@@ -584,6 +619,26 @@ func (s *Service) enqueueCleanup(blobs []db.ImageBlob) {
 	}
 
 	s.blobCleaner.EnqueueCleanup(cleanup)
+}
+
+// checkImageLimit проверяет, что после применения апсертов количество Image-шейпов
+// в диаграмме не превысит лимит: считаем существующие Image-шейпы, исключая
+// заменяемые incoming-шейпы, и прибавляем число входящих Image-шейпов.
+func (s *Service) checkImageLimit(ctx context.Context, diagramID domain.DiagramID, incomingIDs []string, incomingImages int) error {
+	if incomingImages == 0 {
+		return nil
+	}
+
+	existing, err := s.querier.DiagramShapeImageCountExcluding(ctx, diagramID.String(), incomingIDs)
+	if err != nil {
+		return fmt.Errorf("count image shapes: %w", err)
+	}
+
+	if int(existing)+incomingImages > s.cfg.MaxImageShapes {
+		return ErrImageLimitExceeded
+	}
+
+	return nil
 }
 
 // cloneCollaborators копирует участников исходной диаграммы, кроме владельца и самого клонирующего.

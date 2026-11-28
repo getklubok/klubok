@@ -305,6 +305,11 @@ export interface DiagramInfo {
   /** Diagram title */
   title: DiagramTitle;
   permission: DiagramCollaboratorPermissionEnum;
+  /**
+   * Максимальное количество Image-элементов в диаграмме.
+   * @min 1
+   */
+  maxImages: number;
   shapes: Array<DiagramShape>;
   connections: Array<DiagramConnection>;
   shapeCommentStats: Array<DiagramShapeCommentStats>;

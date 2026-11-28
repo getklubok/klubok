@@ -420,6 +420,7 @@ func TestService_Info(t *testing.T) {
 
 				return &Service{
 					querier: q,
+					cfg:     Config{MaxImageShapes: 10},
 					log:     zap.NewNop(),
 				}
 			},
@@ -427,6 +428,7 @@ func TestService_Info(t *testing.T) {
 				ID:         domain.DiagramID("diagram-1"),
 				Title:      "Test Diagram",
 				Permission: domain.DiagramCollaboratorPermissionView,
+				MaxImages:  10,
 				Shapes: []domain.DiagramShape{
 					{
 						ID:   domain.ShapeID("shape-1"),
@@ -687,6 +689,7 @@ func TestService_InfoByUser(t *testing.T) {
 
 				return &Service{
 					querier: q,
+					cfg:     Config{MaxImageShapes: 10},
 					log:     zap.NewNop(),
 				}
 			},
@@ -694,6 +697,7 @@ func TestService_InfoByUser(t *testing.T) {
 				ID:         domain.DiagramID("diagram-1"),
 				Title:      "Test Diagram",
 				Permission: domain.DiagramCollaboratorPermissionOwner,
+				MaxImages:  10,
 				Shapes: []domain.DiagramShape{
 					{
 						ID:   domain.ShapeID("shape-1"),
@@ -966,6 +970,10 @@ func TestService_ShapeUpsert(t *testing.T) {
 
 				q := mocks.NewQuerierMock(t)
 				q.EXPECT().
+					DiagramShapeImageCountExcluding(mock.Anything, "diagram-1", []string{"shape-1"}).
+					Return(int32(0), nil)
+
+				q.EXPECT().
 					DiagramShapeUpsert(mock.Anything, sqlc.DiagramShapeUpsertParams{
 						ID:        "shape-1",
 						DiagramID: "diagram-1",
@@ -999,6 +1007,103 @@ func TestService_ShapeUpsert(t *testing.T) {
 				return &Service{
 					querier:   q,
 					wsManager: ws,
+					cfg:       Config{MaxImageShapes: 3},
+					log:       zap.NewNop(),
+					nowFunc:   func() time.Time { return time.Date(2024, 12, 18, 14, 0, 0, 0, time.UTC) },
+				}
+			},
+		},
+		{
+			name:      "Success - image within limit at boundary",
+			userID:    domain.UserID("user-1"),
+			diagramID: domain.DiagramID("diagram-1"),
+			shape: domain.DiagramShape{
+				ID:   domain.ShapeID("shape-1"),
+				Type: domain.DiagramShapeTypeImage,
+				Img:  "image-1",
+			},
+			handler: func(t *testing.T) *Service {
+				t.Helper()
+
+				q := mocks.NewQuerierMock(t)
+				// В диаграмме уже 2 Image-шейпа (лимит 3): существующий shape-1 исключён
+				// из подсчёта, поэтому его апдейт/перенос лимит не расходует.
+				q.EXPECT().
+					DiagramShapeImageCountExcluding(mock.Anything, "diagram-1", []string{"shape-1"}).
+					Return(int32(2), nil)
+
+				q.EXPECT().
+					DiagramShapeUpsert(mock.Anything, mock.Anything).
+					Return(nil)
+
+				q.EXPECT().
+					ImagePreviewListByDiagram(mock.Anything, "diagram-1").
+					Return([]sqlc.ImagePreviewListByDiagramRow{}, nil)
+
+				ws := mocks.NewWebSocketManagerMock(t)
+				ws.EXPECT().
+					BroadcastToDiagram(domain.DiagramID("diagram-1"), mock.Anything, mock.Anything).
+					Return(nil)
+
+				return &Service{
+					querier:   q,
+					wsManager: ws,
+					cfg:       Config{MaxImageShapes: 3},
+					log:       zap.NewNop(),
+					nowFunc:   func() time.Time { return time.Date(2024, 12, 18, 14, 0, 0, 0, time.UTC) },
+				}
+			},
+		},
+		{
+			name:      "Image limit exceeded",
+			userID:    domain.UserID("user-1"),
+			diagramID: domain.DiagramID("diagram-1"),
+			shape: domain.DiagramShape{
+				ID:   domain.ShapeID("shape-1"),
+				Type: domain.DiagramShapeTypeImage,
+				Img:  "image-1",
+			},
+			handler: func(t *testing.T) *Service {
+				t.Helper()
+
+				q := mocks.NewQuerierMock(t)
+				q.EXPECT().
+					DiagramShapeImageCountExcluding(mock.Anything, "diagram-1", []string{"shape-1"}).
+					Return(int32(3), nil)
+
+				return &Service{
+					querier: q,
+					cfg:     Config{MaxImageShapes: 3},
+					log:     zap.NewNop(),
+				}
+			},
+			wantErr: ErrImageLimitExceeded,
+		},
+		{
+			name:      "Non-image shape skips image count",
+			userID:    domain.UserID("user-1"),
+			diagramID: domain.DiagramID("diagram-1"),
+			shape: domain.DiagramShape{
+				ID:   domain.ShapeID("shape-1"),
+				Type: domain.DiagramShapeTypeSquare,
+			},
+			handler: func(t *testing.T) *Service {
+				t.Helper()
+
+				q := mocks.NewQuerierMock(t)
+				q.EXPECT().
+					DiagramShapeUpsert(mock.Anything, mock.Anything).
+					Return(nil)
+
+				ws := mocks.NewWebSocketManagerMock(t)
+				ws.EXPECT().
+					BroadcastToDiagram(domain.DiagramID("diagram-1"), mock.Anything, mock.Anything).
+					Return(nil)
+
+				return &Service{
+					querier:   q,
+					wsManager: ws,
+					cfg:       Config{MaxImageShapes: 3},
 					log:       zap.NewNop(),
 					nowFunc:   func() time.Time { return time.Date(2024, 12, 18, 14, 0, 0, 0, time.UTC) },
 				}
@@ -2334,6 +2439,123 @@ func TestService_ShapeBatchUpsert(t *testing.T) {
 				return &Service{
 					dbUseCase: dbUC,
 					wsManager: ws,
+					log:       zap.NewNop(),
+					nowFunc:   func() time.Time { return time.Date(2024, 12, 18, 14, 0, 0, 0, time.UTC) },
+				}
+			},
+		},
+		{
+			name:      "Success - image shapes within limit",
+			userID:    domain.UserID("user-1"),
+			diagramID: domain.DiagramID("diagram-1"),
+			shapes: []domain.DiagramShape{
+				{
+					ID:   domain.ShapeID("shape-1"),
+					Type: domain.DiagramShapeTypeImage,
+					Img:  "image-1",
+				},
+				{
+					ID:   domain.ShapeID("shape-2"),
+					Type: domain.DiagramShapeTypeImage,
+					Img:  "image-2",
+				},
+			},
+			handler: func(t *testing.T) *Service {
+				t.Helper()
+
+				q := mocks.NewQuerierMock(t)
+				// В диаграмме уже 1 Image-шейп вне входящего батча (лимит 3): 1 + 2 = 3.
+				q.EXPECT().
+					DiagramShapeImageCountExcluding(mock.Anything, "diagram-1", []string{"shape-1", "shape-2"}).
+					Return(int32(1), nil)
+
+				dbUC := mocks.NewDBUseCaseMock(t)
+				dbUC.EXPECT().
+					DiagramShapeBatchUpsert(mock.Anything, "diagram-1", mock.Anything).
+					Return(nil)
+
+				q.EXPECT().
+					ImagePreviewListByDiagram(mock.Anything, "diagram-1").
+					Return([]sqlc.ImagePreviewListByDiagramRow{
+						{ID: "image-1", Preview: []byte("preview")},
+					}, nil)
+
+				ws := mocks.NewWebSocketManagerMock(t)
+				ws.EXPECT().
+					BroadcastToDiagram(domain.DiagramID("diagram-1"), mock.Anything, mock.Anything).
+					Return(nil).
+					Times(2)
+
+				return &Service{
+					querier:   q,
+					dbUseCase: dbUC,
+					wsManager: ws,
+					cfg:       Config{MaxImageShapes: 3},
+					log:       zap.NewNop(),
+					nowFunc:   func() time.Time { return time.Date(2024, 12, 18, 14, 0, 0, 0, time.UTC) },
+				}
+			},
+		},
+		{
+			name:      "Batch image limit exceeded",
+			userID:    domain.UserID("user-1"),
+			diagramID: domain.DiagramID("diagram-1"),
+			shapes: []domain.DiagramShape{
+				{
+					ID:   domain.ShapeID("shape-1"),
+					Type: domain.DiagramShapeTypeImage,
+					Img:  "image-1",
+				},
+				{
+					ID:   domain.ShapeID("shape-2"),
+					Type: domain.DiagramShapeTypeImage,
+					Img:  "image-2",
+				},
+			},
+			handler: func(t *testing.T) *Service {
+				t.Helper()
+
+				q := mocks.NewQuerierMock(t)
+				// В диаграмме 2 Image-шейпа вне входящего батча (лимит 3): 2 + 2 > 3.
+				q.EXPECT().
+					DiagramShapeImageCountExcluding(mock.Anything, "diagram-1", []string{"shape-1", "shape-2"}).
+					Return(int32(2), nil)
+
+				return &Service{
+					querier: q,
+					cfg:     Config{MaxImageShapes: 3},
+					log:     zap.NewNop(),
+				}
+			},
+			wantErr: ErrImageLimitExceeded,
+		},
+		{
+			name:      "Non-image batch skips image count",
+			userID:    domain.UserID("user-1"),
+			diagramID: domain.DiagramID("diagram-1"),
+			shapes: []domain.DiagramShape{
+				{
+					ID:   domain.ShapeID("shape-1"),
+					Type: domain.DiagramShapeTypeSquare,
+				},
+			},
+			handler: func(t *testing.T) *Service {
+				t.Helper()
+
+				dbUC := mocks.NewDBUseCaseMock(t)
+				dbUC.EXPECT().
+					DiagramShapeBatchUpsert(mock.Anything, "diagram-1", mock.Anything).
+					Return(nil)
+
+				ws := mocks.NewWebSocketManagerMock(t)
+				ws.EXPECT().
+					BroadcastToDiagram(domain.DiagramID("diagram-1"), mock.Anything, mock.Anything).
+					Return(nil)
+
+				return &Service{
+					dbUseCase: dbUC,
+					wsManager: ws,
+					cfg:       Config{MaxImageShapes: 3},
 					log:       zap.NewNop(),
 					nowFunc:   func() time.Time { return time.Date(2024, 12, 18, 14, 0, 0, 0, time.UTC) },
 				}

@@ -1,4 +1,4 @@
-import { type ShapeElement, shapes } from '../stores';
+import { type ElementType, type ShapeElement, shapes } from '../stores';
 import { get } from 'svelte/store';
 import { Group as FabricGroup } from 'fabric/es';
 
@@ -25,6 +25,10 @@ export class ShapeStoreManager {
 
     public getById(id: string): ShapeElement | undefined {
         return this.deps.getShapes().find((el) => el.id === id);
+    }
+
+    public countByType(type: ElementType): number {
+        return this.deps.getShapes().filter((el) => el.type === type).length;
     }
 
     public update(element: ShapeElement): void {

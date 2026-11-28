@@ -48,6 +48,7 @@ func diagramInfoFromDomain(src domain.DiagramInfo) (oas.DiagramInfo, error) {
 		ID:                oas.Ulid(src.ID),
 		Title:             oas.DiagramTitle(src.Title),
 		Permission:        permission,
+		MaxImages:         src.MaxImages,
 		Shapes:            diagramShapesFromDomain(src.Shapes),
 		Connections:       diagramConnectionsFromDomain(src.Connections),
 		ShapeCommentStats: diagramShapeCommentStatsFromDomain(src.ShapeCommentStats),
