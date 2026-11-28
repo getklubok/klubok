@@ -1,0 +1,498 @@
+# Клубок
+
+<img src="media/c0d2d46ff03a3879/logo.png" alt="Клубок" width="200">
+
+[![audit](https://github.com/getklubok/klubok/actions/workflows/audit.yml/badge.svg?branch=master)](https://github.com/getklubok/klubok/actions/workflows/audit.yml)
+[![build](https://github.com/getklubok/klubok/actions/workflows/build.yml/badge.svg)](https://github.com/getklubok/klubok/actions/workflows/build.yml)
+
+Совместная бесконечная доска для блок-схем со связями, описывающих алгоритмы или процессы. У каждого блока или связи можно оставлять комментарии в режиме чата для обсуждения элемента.
+
+## Особенности
+
+💯 Бесплатный и с открытым исходным кодом.
+🎨 Бесконечная доска на основе canvas.
+💾 Автосохранение.
+📤 Экспорт в PNG, JSON (.klubok).
+📥 Импорт из JSON (.klubok).
+🖼️ Поддержка изображений.
+🌓 Тёмный режим.
+🧰 Широкий выбор инструментов: прямоугольник, круг, ромб, стрелка, текст, контейнер.
+➡️ Привязка стрелок.
+🔍 Поддержка масштабирования и панорамирования.
+
+## Документация
+
+- **Начало работы**: [Установка](get-started/install.md)
+- **Администрирование**: [Обновление](administration/update.md), [Фича-флаги](administration/feature-flags.md), [Метрики](administration/metrics.md), [Хранилище изображений](administration/storage.md), [Политика обработки персональных данных](administration/privacy-policy.md)
+- **Прокси**: [Nginx](proxy/nginx.md)
+- **База данных**: [PostgreSQL](database/postgresql.md)
+- **Разработка**: [Локальный запуск](development/setup.md), [Релиз](development/release.md), [Версии инструментов](development/toolchain.md)
+
+# Установка
+
+Клубок разворачивается с помощью Docker Compose и nginx по схеме Blue-Green: приложение запускается в контейнере `blue` или `green`, а nginx проксирует запросы на активный.
+
+Понадобятся Docker с плагином Compose и nginx.
+
+> [!WARNING]
+> Перед запуском замените заглушки в compose-файлах: `POSTGRES_PASSWORD`, пароль в `GOOSE_DBSTRING`, `MAILER_PASSWORD`, а также `domain.tld`, `APP_BASE_URL`, `HTTP_CORS_ALLOW_ORIGINS`, `COOKIE_DOMAIN` и настройки `MAILER_*`. Значения `postgres` и `password` — это заглушки, а не рабочие секреты.
+
+1. Создайте каталог проекта:
+    ```bash
+    mkdir /opt/klubok
+    ```
+2. Скачайте [конфиг nginx](proxy/nginx.md) и включите сайт (по умолчанию активен `blue`):
+    ```bash
+    curl -o /etc/nginx/sites-available/domain.tld https://raw.githubusercontent.com/getklubok/klubok/refs/heads/master/deploy/nginx.conf
+    ln -s /etc/nginx/sites-available/domain.tld /etc/nginx/sites-enabled/domain.tld
+    ln -s /etc/nginx/sites-available/domain.tld /opt/klubok/nginx.conf
+    ```
+3. Скачайте compose-файлы:
+    ```bash
+    curl -o /opt/klubok/compose.blue.yaml https://raw.githubusercontent.com/getklubok/klubok/refs/heads/master/deploy/compose.blue.yaml
+    curl -o /opt/klubok/compose.green.yaml https://raw.githubusercontent.com/getklubok/klubok/refs/heads/master/deploy/compose.green.yaml
+    ```
+4. Запустите приложение:
+    ```bash
+    cd /opt/klubok
+    docker network create klubok-network
+    export D=blue APP_VERSION=X.Y.Z && docker compose -f ./compose.${D}.yaml up -d
+    ```
+5. По желанию включите [`pg_stat_statements`](database/postgresql.md).
+6. Настройте мониторинг доступности:
+    - `GET https://domain.tld/api/health/live` — backend без зависимостей.
+    - `GET https://domain.tld/api/health/ready` — backend и его зависимости.
+    - `HEAD https://domain.tld` — frontend.
+
+## Дальше
+
+- [Обновление](administration/update.md) — как выпустить новую версию без простоя.
+- [Фича-флаги](administration/feature-flags.md) — вход по email, SSO, капча и приватность.
+- [Метрики](administration/metrics.md) — Prometheus-метрики приложения.
+- [Политика обработки персональных данных](administration/privacy-policy.md) — необязательный текст политики.
+
+# Обновление
+
+Используется Blue-Green Deployment: новая версия поднимается на свободных портах рядом со старой, проверяется и только потом получает трафик.
+
+1. Перейдите в каталог с compose-файлами:
+    ```bash
+    cd /opt/klubok
+    ```
+2. Посмотрите, какой контейнер сейчас запущен, `blue` или `green`:
+    ```bash
+    docker ps
+    ```
+3. Запустите новую версию приложения на других портах (пример для обновления с blue на green):
+    ```bash
+    export D=green APP_VERSION=X.Y.Z && docker compose -f ./compose.${D}.yaml up -d
+    ```
+4. Проверьте работоспособность новой версии:
+    ```bash
+    docker ps
+    docker logs klubok_${D}
+    curl -I http://localhost:50111
+    curl -I http://localhost:50111/api/health/ready
+    ```
+    Порты для локальной проверки: `50101` (HTTP) и `50103` (WS) у blue, `50111` (HTTP) и `50113` (WS) у green.
+5. Переключите nginx на новую версию. В `nginx.conf` замените порты старого цвета на порты нового: `50101` → `50111` для HTTP и `50103` → `50113` для WebSocket. Если обновляетесь с green на blue — наоборот:
+    ```bash
+    nano ./nginx.conf
+    nginx -t
+    nginx -s reload
+    ```
+6. Остановите старую версию:
+    ```bash
+    docker stop klubok_blue
+    ```
+    Если обновлялись с green, остановите `klubok_green`.
+
+## Откат
+
+Пока старый контейнер не остановлен, откат — это возврат портов в `nginx.conf` и `nginx -s reload`.
+
+# Фича-флаги
+
+Фича-флаги задаются переменными окружения в секции `Feature` конфига backend (`back/internal/application/config.go`). Все выключены по умолчанию, кроме `FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED`.
+
+| Переменная                              | Описание                                                                                                                   | По умолчанию |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| `FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED`    | Автоматические обезличенные аккаунты (несовместим с `FEATURE_AUTH_SSO_ENABLED`)                                            | `true`       |
+| `FEATURE_AUTH_EMAIL_ENABLED`            | Вход и регистрация по email-коду (отправка кода, верификация, активация)                                                   | `false`      |
+| `FEATURE_AUTH_SSO_ENABLED`              | Вход через SSO по протоколу OIDC (несовместим с `FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED`)                                      | `false`      |
+| `FEATURE_AUTH_SSO_ISSUER_URL`           | Issuer URL OIDC-провайдера для discovery (обязателен при включённом SSO)                                                   | (пусто)      |
+| `FEATURE_AUTH_SSO_CLIENT_ID`            | Идентификатор клиента у OIDC-провайдера (обязателен при включённом SSO)                                                    | (пусто)      |
+| `FEATURE_AUTH_SSO_CLIENT_SECRET`        | Секрет клиента у OIDC-провайдера (обязателен при включённом SSO)                                                           | (пусто)      |
+| `FEATURE_AUTH_SSO_REDIRECT_URL`         | URL callback бэкенда для возврата от провайдера (обязателен при включённом SSO)                                            | (пусто)      |
+| `FEATURE_CAPTCHA_ENABLED`               | Включить проверку капчи                                                                                                    | `false`      |
+| `FEATURE_CAPTCHA_PROVIDER`              | Провайдер капчи (`yandex`)                                                                                                 | `yandex`     |
+| `FEATURE_CAPTCHA_YANDEX_SERVER_KEY`     | Серверный ключ капчи Yandex (обязателен при включённой капче)                                                              | (пусто)      |
+| `FEATURE_CAPTCHA_YANDEX_SITE_KEY`       | Публичный ключ сайта капчи Yandex (обязателен при включённой капче, отдаётся фронтенду через API)                          | (пусто)      |
+| `FEATURE_STATIC_CLAIMS_ENABLED`         | Статичные claims. Срабатывает только при `environment=local`                                                               | `false`      |
+| `FEATURE_STATIC_CLAIMS_SESSION_ID`      | Session ID для статичных claims                                                                                            | (пусто)      |
+| `FEATURE_STATIC_CLAIMS_USER_ID`         | User ID для статичных claims                                                                                               | (пусто)      |
+| `FEATURE_IP_MASKING_ENABLED`            | Маскировка IP-адресов при записи в сохраняемые места (`privacy_log`, логи WebSocket, атрибуты трейсера)                    | `false`      |
+| `FEATURE_IP_MASKING_V4_OCTETS`          | Количество сохраняемых октетов IPv4 (1..4)                                                                                 | `3`          |
+| `FEATURE_IP_MASKING_V6_OCTETS`          | Количество сохраняемых групп IPv6 (1..8)                                                                                   | `7`          |
+| `FEATURE_ALLOWED_EMAIL_DOMAINS_ENABLED` | Ограничение регистрации по суффиксам доменов почты (список в `FEATURE_ALLOWED_EMAIL_DOMAINS_LIST`, суффиксы через запятую) | `false`      |
+| `FEATURE_ALLOWED_EMAIL_DOMAINS_LIST`    | Разрешённые суффиксы доменов для регистрации, например `example.com,corp.example.com`                                      | (пусто)      |
+
+## Проверки при старте
+
+Невалидные комбинации блокируют старт приложения с ошибкой:
+
+- `FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED=true` вместе с `FEATURE_AUTH_SSO_ENABLED=true`.
+- Одновременно выключены `FEATURE_AUTH_EMAIL_ENABLED`, `FEATURE_AUTH_SSO_ENABLED` и `FEATURE_FAKE_AUTO_ACCOUNTS_ENABLED`.
+- При включённом SSO `APP_BASE_URL` должен быть валидным http/https URL без trailing slash — на него ведёт `302` после успешного SSO-callback.
+- Переменные `MAILER_*` обязательны при `FEATURE_AUTH_EMAIL_ENABLED=true`.
+- При включённой капче обязательны `FEATURE_CAPTCHA_YANDEX_SERVER_KEY` и `FEATURE_CAPTCHA_YANDEX_SITE_KEY`.
+- При включённом ограничении доменов обязателен непустой `FEATURE_ALLOWED_EMAIL_DOMAINS_LIST`.
+
+# Метрики
+
+Prometheus-метрики отдаются на `http://<host>:<METRICS_PORT>/metrics` (по умолчанию порт `6060`).
+
+## Метрики приложения
+
+| Метрика                              | Тип       | Метки                      | Описание                                                                         |
+| ------------------------------------ | --------- | -------------------------- | -------------------------------------------------------------------------------- |
+| `http_requests_total`                | counter   | `method`, `path`, `status` | Общее количество HTTP-запросов                                                   |
+| `http_requests_inflight_current`     | gauge     | —                          | Количество HTTP-запросов в обработке                                             |
+| `http_request_duration_seconds`      | histogram | `method`, `path`           | Длительность HTTP-запросов в секундах                                            |
+| `klubok_email_channel_size`          | gauge     | —                          | Количество писем в канале отправки; `0`, если `FEATURE_AUTH_EMAIL_ENABLED=false` |
+| `klubok_ws_connections_current`      | gauge     | —                          | Количество активных WebSocket-подключений                                        |
+| `klubok_ws_unique_users_current`     | gauge     | —                          | Количество уникальных пользователей с активными WebSocket-подключениями          |
+| `go_sql_max_open_connections`        | gauge     | `db_name`                  | Максимальное количество соединений с БД                                          |
+| `go_sql_open_connections`            | gauge     | `db_name`                  | Количество установленных соединений (в работе и idle)                            |
+| `go_sql_in_use_connections`          | gauge     | `db_name`                  | Количество соединений в работе                                                   |
+| `go_sql_idle_connections`            | gauge     | `db_name`                  | Количество idle-соединений                                                       |
+| `go_sql_wait_count_total`            | counter   | `db_name`                  | Общее количество ожиданий соединения                                             |
+| `go_sql_wait_duration_seconds_total` | counter   | `db_name`                  | Суммарное время ожидания соединения в секундах                                   |
+| `go_sql_max_idle_closed_total`       | counter   | `db_name`                  | Соединения, закрытые из-за `MaxIdleConns`                                        |
+| `go_sql_max_lifetime_closed_total`   | counter   | `db_name`                  | Соединения, закрытые из-за `ConnMaxLifetime`                                     |
+
+Дополнительно экспортируются стандартные метрики Go runtime (`go_*`) и процесса (`process_*`).
+
+# Политика обработки персональных данных
+
+Политика необязательна: по умолчанию compose-файлы не монтируют `privacy.md`, и приложение возвращает `404`, а интерфейс показывает сообщение «Файл политики не найден». Это нормально для инсталляций на fake-аккаунтах, где персональные данные не обрабатываются.
+
+Чтобы показывать политику, положите файл рядом с compose-файлами и добавьте монтаж в секцию `volumes` сервиса приложения. За основу можно взять [пример в репозитории](https://github.com/getklubok/klubok/blob/main/front/public/privacy.md).
+
+1. Скачайте файл, например в `/opt/klubok/privacy.md`:
+    ```bash
+    curl -o /opt/klubok/privacy.md https://raw.githubusercontent.com/getklubok/klubok/refs/heads/master/front/public/privacy.md
+    ```
+2. Добавьте в `compose.blue.yaml` и `compose.green.yaml` монтаж:
+    ```yaml
+    volumes:
+        - ./privacy.md:/app/privacy.md:ro
+    ```
+3. Перезапустите приложение:
+    ```bash
+    cd /opt/klubok
+    export D=blue APP_VERSION=X.Y.Z && docker compose -f ./compose.${D}.yaml up -d
+    ```
+
+Текст читается с диска на каждый запрос, поэтому обновления `privacy.md` на хосте видны без пересборки образа. Заголовки запрета кэширования выставляет приложение, так что обновлённое содержимое отдаётся сразу.
+
+# Изображения и хранилище
+
+Изображения диаграмм хранятся вне PostgreSQL: оригинал и полноэкранный вариант лежат в блоб-хранилище (локальный каталог или S3), а маленький preview — в таблице `images`. Хранилище выбирается переменной `STORAGE_PROVIDER`, лимиты обработки — переменными `IMAGE_*`.
+
+## Провайдеры
+
+| Провайдер | Значение                 | Обязательные переменные                                         |
+| --------- | ------------------------ | --------------------------------------------------------------- |
+| Local     | `STORAGE_PROVIDER=local` | `STORAGE_LOCAL_PATH`                                            |
+| S3        | `STORAGE_PROVIDER=s3`    | `STORAGE_S3_ENDPOINT`, `STORAGE_S3_REGION`, `STORAGE_S3_BUCKET` |
+
+`STORAGE_PROVIDER` по умолчанию `local`.
+
+### Local
+
+```bash
+export STORAGE_PROVIDER=local
+export STORAGE_LOCAL_PATH=/storage
+```
+
+- Каталог должен быть доступен на запись пользователю приложения (`appuser`). При старте приложение создаёт его при необходимости и делает пробную запись, поэтому без прав на запись оно не запустится.
+- В compose-файлах каталог `/storage` смонтирован из именованного volume `klubok_storage`, общего для `blue` и `green`: при переключении версии изображения остаются на месте.
+- При bind mount (`- ./storage:/storage`) права нужно выставить вручную — содержимое каталога на хосте принадлежит `appuser` внутри образа.
+- Бэкап: содержимое volume копируется вместе с дампом БД, иначе после восстановления preview будет, а оригиналов и полноэкранных вариантов не будет.
+
+### S3
+
+```bash
+export STORAGE_PROVIDER=s3
+export STORAGE_S3_ENDPOINT="https://storage.yandexcloud.net"
+export STORAGE_S3_REGION="ru-central1"
+export STORAGE_S3_BUCKET="klubok"
+export STORAGE_S3_ACCESS_KEY="..."
+export STORAGE_S3_SECRET_KEY="..."
+export STORAGE_S3_FORCE_PATH_STYLE=false
+export STORAGE_S3_PREFIX=""
+```
+
+- `STORAGE_S3_ACCESS_KEY` и `STORAGE_S3_SECRET_KEY` задаются только парой. Если оба пусты, используется стандартная цепочка credentials AWS SDK (роль инстанса, профиль, `AWS_*`).
+- `STORAGE_S3_PREFIX` добавляется к ключу объекта только на уровне провайдера, поэтому один бакет можно разделить между окружениями.
+- `STORAGE_S3_FORCE_PATH_STYLE=true` нужен для S3-совместимых хранилищ без virtual-hosted-style (MinIO и подобные).
+- Недоступность S3 не входит в readiness-пробу: приложение продолжает работать, а загрузка и выдача изображений отвечают `500`.
+
+## Лимиты изображений
+
+| Переменная                     | По умолчанию | Назначение                                           |
+| ------------------------------ | ------------ | ---------------------------------------------------- |
+| `IMAGE_MAX_FILE_SIZE`          | `2097152`    | Максимальный размер загружаемого файла, байт (2 МиБ) |
+| `IMAGE_MAX_PIXELS`             | `12000000`   | Максимальное число пикселей (ширина × высота)        |
+| `IMAGE_PREVIEW_MAX_SIDE_PX`    | `250`        | Длинная сторона preview (хранится в БД)              |
+| `IMAGE_FULLSCREEN_MAX_SIDE_PX` | `2048`       | Длинная сторона полноэкранного варианта              |
+| `DIAGRAM_MAX_IMAGE_SHAPES`     | `50`         | Максимальное количество Image-элементов в диаграмме  |
+
+Все значения должны быть положительными, иначе приложение не запустится. Принимаются только PNG и JPEG: формат определяется по содержимому файла, а не по расширению или заголовку запроса. GIF, WebP и SVG отклоняются с кодом `400`, превышение размера файла — `413`.
+
+`DIAGRAM_MAX_IMAGE_SHAPES` ограничивает число Image-элементов в одной диаграмме. Клиент проверяет лимит до загрузки файла и показывает предупреждение; при обходе клиента сервер отклоняет upsert Image-элемента с кодом `400`. Перенос существующего элемента лимит не расходует, клонирование и JSON-импорт диаграмм лимит не проверяют.
+
+### Лимит размера тела запроса
+
+Общего лимита на тело запроса в приложении нет. Фактический предел задаёт nginx — [`client_max_body_size 10m`](proxy/nginx.md) в `deploy/nginx.conf`. Multipart-разбор (`ParseMultipartForm`) держит в памяти до 32 МиБ и сбрасывает остаток во временные файлы, поэтому запрос заметно больше `IMAGE_MAX_FILE_SIZE` сначала полностью осядет в `tmpfs`/диске контейнера, и только потом счётчик байт вернёт `413`.
+
+Практические следствия:
+
+- Держите `client_max_body_size` в nginx ненамного выше `IMAGE_MAX_FILE_SIZE`: 10m при лимите файла 2 МиБ — это запас на multipart-обёртку, а не приглашение загружать десятимегабайтные файлы.
+- Если `IMAGE_MAX_FILE_SIZE` поднимается, значение в nginx нужно поднять вместе с ним и наоборот.
+- Временные файлы multipart живут в каталоге временных файлов контейнера; при большом потоке загрузок стоит следить за свободным местом.
+
+## Свёртывание и удаление
+
+Оригинал и полноэкранный вариант адресуются по хешу содержимого, поэтому повторная загрузка того же файла переиспользует уже лежащие блобы, а удаление изображения или диаграммы ставит блобы в очередь очистки после коммита транзакции.
+
+Очистка выполняется в процессе приложения: очередь ограничена 256 задачами, при переполнении задача теряется с предупреждением в логе. Потерянная задача оставляет файл в хранилище (orphan-блоб), но не ломает диаграмму — ссылка в БД уже удалена.
+
+> [!NOTE]
+> Блокировка «не удалить блоб, который только что загрузили» работает внутри одного процесса. Развёртывание однорепличное (blue/green переключается целиком), поэтому этого достаточно; при переходе на несколько реплик очистку нужно переводить на advisory lock в PostgreSQL.
+
+# Nginx
+
+nginx — единственная точка входа: принимает HTTPS, проксирует HTTP и WebSocket на активный контейнер `blue` или `green` и добавляет базовые security-заголовки. Готовый конфиг лежит в [`deploy/nginx.conf`](https://github.com/getklubok/klubok/blob/master/deploy/nginx.conf), при установке он копируется в `/etc/nginx/sites-available/domain.tld` (см. [Установку](get-started/install.md)).
+
+## Порты
+
+| Назначение | blue  | green |
+| ---------- | ----- | ----- |
+| HTTP       | 50101 | 50111 |
+| WebSocket  | 50103 | 50113 |
+
+`location /` проксирует на HTTP-порт, `location /ws` — на WebSocket-порт. При переключении версии порты в конфиге меняются вручную — см. [Обновление](administration/update.md).
+
+## Основные настройки
+
+| Настройка               | Значение                                                                  |
+| ----------------------- | ------------------------------------------------------------------------- |
+| HTTP                    | Все запросы на `:80` перенаправляются на HTTPS с кодом `301`              |
+| TLS                     | Только TLS 1.2 и 1.3, session cache 10m, session tickets выключены        |
+| Сертификаты             | `/etc/letsencrypt/live/domain.tld/` — замените на свой путь               |
+| Тело запроса            | `client_max_body_size 10m`                                                |
+| Сжатие                  | gzip для текста, CSS, JavaScript и JSON                                   |
+| Скрытые файлы           | Любой `location`, начинающийся с точки, запрещён                          |
+| Security-заголовки      | `X-Content-Type-Options`, `Referrer-Policy`, `Strict-Transport-Security`  |
+| Заголовки проксирования | `Host`, `X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto`               |
+| WebSocket               | HTTP/1.1 с `Upgrade`/`Connection`, таймауты 3600 с, буферизация выключена |
+| Health-пробы            | `GET /api/health/live` и `/api/health/ready` не пишутся в `access.log`    |
+
+Заголовки, зависящие от пути (CSP, `X-Frame-Options`, антикэш, MIME-политики), выставляет backend в `back/internal/application/mux.go`. В nginx они не дублируются, чтобы не конфликтовать с ответом приложения.
+
+`client_max_body_size` — фактический предел размера загружаемого изображения: в приложении общего лимита на тело запроса нет, проверяется только размер файла (`IMAGE_MAX_FILE_SIZE`). Держите это значение ненамного выше лимита файла — см. [Изображения и хранилище](administration/storage.md).
+
+## Применение конфига
+
+После изменения портов или других настроек проверьте и перезагрузите nginx без простоя:
+
+```bash
+nginx -t
+nginx -s reload
+```
+
+## Маскировка IP-адресов
+
+В конфиге есть закомментированный блок `map $remote_addr $remote_addr_masked` и `log_format masked`. Он заменяет последний октет IPv4 на `x`, чтобы IP не попадали в логи.
+
+Включать его нужно вместе с флагом [`FEATURE_IP_MASKING_ENABLED`](administration/feature-flags.md): nginx не читает env backend, согласованность обеспечивается при развёртывании. Порядок:
+
+1. Раскомментируйте `map` и `log_format`.
+2. В `server`-блоке на `:443` добавьте `access_log /var/log/nginx/access.log masked;`.
+3. Примените конфиг: `nginx -t && nginx -s reload`.
+
+# PostgreSQL
+
+База данных запускается в контейнере `klubok_postgres` (см. compose-файлы в каталоге `deploy`).
+
+## Бэкап
+
+```bash
+export KLUBOK_DT=$(date +%Y-%m-%d_%H-%M-%S)
+docker exec -t klubok_postgres pg_dumpall -c -U postgres > ./${KLUBOK_DT}.sql
+tar -czf ./${KLUBOK_DT}.tar.gz ./${KLUBOK_DT}.sql
+rm ./${KLUBOK_DT}.sql
+```
+
+## Восстановление из бэкапа
+
+> [!WARNING]
+> Восстановление применяет дамп целиком и перезаписывает текущие данные. Сделайте свежий бэкап перед восстановлением.
+
+```bash
+export KLUBOK_DT=2024-11-27_10-08-49
+tar -xzf ./${KLUBOK_DT}.tar.gz
+docker exec -i klubok_postgres psql -U postgres < ./${KLUBOK_DT}.sql
+rm ./${KLUBOK_DT}.sql
+```
+
+## pg_stat_statements
+
+1. Скопируйте файл из контейнера и откройте его в редакторе:
+    ```bash
+    docker cp klubok_postgres:/var/lib/postgresql/data/postgresql.conf ~/postgresql.conf
+    nano ~/postgresql.conf
+    ```
+2. В самом конце добавьте строки:
+    ```ini
+    shared_preload_libraries = 'pg_stat_statements'
+    pg_stat_statements.track = all
+    pg_stat_statements.max = 10000
+    ```
+3. Скопируйте файл обратно в контейнер и удалите локальный файл:
+    ```bash
+    docker cp ~/postgresql.conf klubok_postgres:/var/lib/postgresql/data/postgresql.conf
+    rm ~/postgresql.conf
+    ```
+4. Откройте psql в контейнере:
+    ```bash
+    docker exec -it klubok_postgres bash -c "psql -U postgres -d postgres"
+    ```
+5. Включите расширение (если оно ещё не включено):
+    ```sql
+    SELECT * FROM pg_available_extensions WHERE name = 'pg_stat_statements';
+    CREATE EXTENSION pg_stat_statements;
+    SELECT * FROM pg_available_extensions WHERE name = 'pg_stat_statements';
+    ```
+6. Перезапустите контейнер:
+    ```bash
+    docker restart klubok_postgres
+    ```
+7. Проверьте, что библиотека загружена:
+    ```bash
+    docker exec -it klubok_postgres bash -c "psql -U postgres -d postgres -c 'SHOW shared_preload_libraries;'"
+    ```
+8. Сбросьте статистику при необходимости:
+    ```bash
+    docker exec -it klubok_postgres psql -U postgres -d postgres -c "SELECT pg_stat_statements_reset();"
+    ```
+
+# Локальный запуск
+
+## Адреса по умолчанию
+
+- [API](http://127.0.0.1:5172/api/)
+- [Web](http://127.0.0.1:5173/)
+- [Health Live](http://127.0.0.1:5172/api/health/live)
+- [Health Ready](http://127.0.0.1:5172/api/health/ready)
+
+## Быстрый запуск dev-серверов
+
+Вместо ручного запуска в двух терминалах можно управлять всем из корня проекта (требуется выполненный `make init` в `back` и `front`):
+
+- `make dev` — запускает БД, backend и frontend в правильном порядке и фоновом режиме (логи в `.run/logs/`), безопасно запускать повторно;
+- `make dev-status` — статус серверов;
+- `make dev-stop` — останавливает frontend, backend и контейнер PostgreSQL;
+- `make dev-restart` — перезапуск; `make dev-logs ARGS="-f back"` — просмотр логов;
+- выборочный таргет: `make dev ARGS=back`, `make dev ARGS=front`.
+
+## Backend
+
+Понадобятся Go 1.26.11 или новее и Docker.
+
+1. Скопируйте `back/.envrc.example` в `back/.envrc`.
+2. Откройте отдельный терминал и перейдите в каталог `back`.
+3. Загрузите переменные окружения через [direnv](https://direnv.net) или выполните `source .envrc`.
+4. Выполните `make init` — команда установит зависимости и инструменты, а также создаст контейнер PostgreSQL.
+5. Выполните `make run` — команда применит миграции и запустит backend с race detector.
+
+## Frontend
+
+Понадобятся [bun](https://bun.sh) и запущенный backend.
+
+1. Скопируйте `front/.env.development.example` в `front/.env.development`.
+2. Откройте отдельный терминал и перейдите в каталог `front`.
+3. Выполните `make init` — команда установит зависимости и сгенерирует API-клиент из OpenAPI.
+4. Выполните `make run` — команда запустит Vite dev server.
+
+## AI-ассистент
+
+1. Инициализируйте CodeGraph:
+    ```json
+    codegraph init
+    ```
+2. Инициализируйте OpenSpec:
+    ```bash
+    openspec init --language "Russian (ru-RU)"
+    ```
+
+# Релиз
+
+## Скрипт для релиза
+
+```bash
+curl -L https://gist.githubusercontent.com/DimNS/1b3e3814c37f4694d8759097f7b833ac/raw/release.sh -o ~/.local/bin/release.sh
+chmod +x ~/.local/bin/release.sh
+```
+
+## Запуск
+
+Из корня репозитория:
+
+```bash
+make release
+```
+
+# Версии инструментов
+
+При обновлении Go, golangci-lint и Alpine меняйте версии согласованно в перечисленных файлах.
+
+## golangci-lint
+
+- `.github/workflows/audit.yml` — параметр `version` шага `golangci-lint-action` (сейчас `v2.11.4`):
+    ```yaml
+    with:
+        version: v2.11.4
+    ```
+- `back/.tool-versions` — с обязательным указанием патча, требование asdf-manager:
+    ```text
+    golangci-lint 2.11.4
+    ```
+
+## Go
+
+- `back/go.mod`:
+    ```text
+    go 1.26.11
+    ```
+- `build/Dockerfile` — без указания патча, чтобы сборка была на последнем патче:
+    ```dockerfile
+    FROM golang:1.26-alpine3.24 AS back
+    ```
+- `.github/workflows/audit.yml` — `actions/setup-go` читает версию из `go.mod`:
+    ```yaml
+    with:
+        go-version-file: ./back/go.mod
+    ```
+
+## Alpine
+
+В `build/Dockerfile` версия Alpine указывается без патча:
+
+```dockerfile
+FROM golang:1.26-alpine3.24 AS back
+...
+FROM alpine:3.24
+```

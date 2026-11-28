@@ -1,0 +1,455 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Локальный запуск - Клубок</title><meta name="description" content="Вместо ручного запуска в двух терминалах можно управлять всем из корня проекта (требуется выполненный make init в back и front):"><link rel="icon" href="../favicon.svg" type="image/svg+xml"><link rel="alternate" type="text/markdown" href="../development/setup.md"><script>
+		(() => {
+			const root = document.documentElement;
+			const stored = () => {
+				try {
+					return localStorage.getItem("theme");
+				} catch {
+					return null;
+				}
+			};
+			const scheme = /\(\s*prefers-color-scheme\s*:\s*(light|dark)\s*\)/g;
+			const fit = (source) => {
+				const media = source.dataset.media ?? source.getAttribute("media") ?? "";
+				if (!media.includes("prefers-color-scheme")) {
+					return;
+				}
+				source.dataset.media = media;
+				const theme = root.dataset.theme;
+				const next = theme
+					? media.replace(scheme, (_, s) => (s === theme ? "(width >= 0)" : "(width < 0)"))
+					: media;
+				if (source.getAttribute("media") !== next) {
+					source.setAttribute("media", next);
+				}
+			};
+			const apply = (choice) => {
+				if (choice === "light" || choice === "dark") {
+					root.dataset.theme = choice;
+				} else {
+					delete root.dataset.theme;
+				}
+				const current = root.dataset.theme ?? "system";
+				for (const b of document.querySelectorAll("[data-theme-choice]")) {
+					b.setAttribute("aria-pressed", String(b.dataset.themeChoice === current));
+				}
+				// Use the attribute because the select may not be upgraded yet.
+				for (const select of document.querySelectorAll("neo-select.theme-select")) {
+					select.setAttribute("value", current);
+				}
+				for (const source of document.querySelectorAll("picture > source[media]")) {
+					fit(source);
+				}
+			};
+			const choose = (choice) => {
+				try {
+					if (choice === "system") {
+						localStorage.removeItem("theme");
+					} else {
+						localStorage.setItem("theme", choice);
+					}
+				} catch {}
+				apply(choice);
+			};
+			apply(stored());
+			// Apply choices to parser-added sources immediately so the system-theme
+			// image does not load first.
+			const parsing = new MutationObserver((records) => {
+				for (const r of records) {
+					for (const n of r.addedNodes) {
+						if (n.nodeName === "SOURCE" && n.parentNode?.nodeName === "PICTURE") {
+							fit(n);
+						}
+					}
+				}
+			});
+			if (root.dataset.theme) {
+				parsing.observe(root, { childList: true, subtree: true });
+			}
+			document.addEventListener("DOMContentLoaded", () => {
+				parsing.disconnect();
+				apply(stored());
+			});
+			document.addEventListener("click", (e) => {
+				const button = e.target.closest("[data-theme-choice]");
+				if (button) {
+					choose(button.dataset.themeChoice);
+				}
+			});
+			document.addEventListener("neo-select-change", (e) => {
+				if (e.target.matches(".theme-select")) {
+					choose(e.detail.value);
+				}
+			});
+		})();
+	</script><link rel="stylesheet" href="../morpheus/morpheus.min.css"><style>:root{--neo-icon-base:"../morpheus/icons"}</style><link rel="stylesheet" href="../docpages.css"><script type="module" src="../morpheus/morpheus.min.js"></script><script type="module" src="../docpages.js"></script></head><body class="docs-page" data-site-root="../" data-version="main"><a class="skip-link" href="#main-content">Skip to content</a> <header class="site-header"><div class="brand"><a class="logo" href="../../../" aria-label="Клубок home"><span class="logo-text">Клубок</span></a><neo-select value="main" size="sm" aria-label="Documentation version" follow-scroll="until-trigger-invisible" popover-fit-content class="version-select"><neo-option role="option" tabindex="-1" aria-selected="false" value="main" data-neo-value="main" data-fallback="../../main/" data-href="../../main/development/setup">main</neo-option></neo-select></div><nav aria-label="Site"><neo-button role="button" variant="ghost" tabindex="0" aria-controls="docs-nav" class="menu-button" id="docs-nav-toggle"><neo-icon name="menu" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="lucide lucide-menu"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M4 5h16" />
+  <path d="M4 12h16" />
+  <path d="M4 19h16" />
+</svg>
+</neo-icon> Menu</neo-button><a class="header-link" href="../" aria-current="page">Docs</a><a class="header-repository icon-link" href="https://github.com/getklubok/klubok"><neo-icon name="github" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="lucide lucide-github"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+  <path d="M9 18c-4.51 2-5-2-7-2" />
+</svg>
+</neo-icon> GitHub</a><neo-dialog class="search"><button type="button" class="search-button" aria-keyshortcuts="/ Control+K Meta+K" data-neo-dialog-trigger><neo-icon name="search" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="lucide lucide-search"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="m21 21-4.34-4.34" />
+  <circle cx="11" cy="11" r="8" />
+</svg>
+</neo-icon><span class="search-label">Search</span> <kbd>/</kbd></button> <dialog class="search-dialog" aria-label="Search the documentation"><div class="search-box" role="search"><neo-icon name="search" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="lucide lucide-search"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="m21 21-4.34-4.34" />
+  <circle cx="11" cy="11" r="8" />
+</svg>
+</neo-icon><input type="search" class="search-input" placeholder="Search the documentation" aria-label="Search the documentation" role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list" autocomplete="off" spellcheck="false"></div><neo-elastic class="search-body"><p class="search-heading" hidden>Suggested</p><ul class="search-results" id="search-results" role="listbox" aria-label="Suggested pages"></ul><p class="search-status" role="status"></p></neo-elastic><p class="search-keys" aria-hidden="true"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> select</span> <span><kbd>&crarr;</kbd> open</span> <span><kbd>esc</kbd> close</span></p></dialog></neo-dialog><neo-select value="system" size="sm" caret="" aria-label="Theme" placement="bottom-end" follow-scroll="until-trigger-invisible" popover-fit-content class="theme-select" title="Theme"><neo-option role="option" tabindex="-1" aria-selected="false" value="system" data-neo-value="system" label="System"><span data-neo-option-trigger><neo-icon name="monitor" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="lucide lucide-monitor"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <rect width="20" height="14" x="2" y="3" rx="2" />
+  <line x1="8" x2="16" y1="21" y2="21" />
+  <line x1="12" x2="12" y1="17" y2="21" />
+</svg>
+</neo-icon></span><neo-icon name="monitor" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="lucide lucide-monitor"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <rect width="20" height="14" x="2" y="3" rx="2" />
+  <line x1="8" x2="16" y1="21" y2="21" />
+  <line x1="12" x2="12" y1="17" y2="21" />
+</svg>
+</neo-icon> System</neo-option><neo-option role="option" tabindex="-1" aria-selected="false" value="light" data-neo-value="light" label="Light"><span data-neo-option-trigger><neo-icon name="sun" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="lucide lucide-sun"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <circle cx="12" cy="12" r="4" />
+  <path d="M12 2v2" />
+  <path d="M12 20v2" />
+  <path d="m4.93 4.93 1.41 1.41" />
+  <path d="m17.66 17.66 1.41 1.41" />
+  <path d="M2 12h2" />
+  <path d="M20 12h2" />
+  <path d="m6.34 17.66-1.41 1.41" />
+  <path d="m19.07 4.93-1.41 1.41" />
+</svg>
+</neo-icon></span><neo-icon name="sun" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="lucide lucide-sun"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <circle cx="12" cy="12" r="4" />
+  <path d="M12 2v2" />
+  <path d="M12 20v2" />
+  <path d="m4.93 4.93 1.41 1.41" />
+  <path d="m17.66 17.66 1.41 1.41" />
+  <path d="M2 12h2" />
+  <path d="M20 12h2" />
+  <path d="m6.34 17.66-1.41 1.41" />
+  <path d="m19.07 4.93-1.41 1.41" />
+</svg>
+</neo-icon> Light</neo-option><neo-option role="option" tabindex="-1" aria-selected="false" value="dark" data-neo-value="dark" label="Dark"><span data-neo-option-trigger><neo-icon name="moon" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="lucide lucide-moon"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" />
+</svg>
+</neo-icon></span><neo-icon name="moon" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="lucide lucide-moon"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" />
+</svg>
+</neo-icon> Dark</neo-option></neo-select><div class="theme-switch" role="group" aria-label="Theme"><button type="button" data-theme-choice="system" aria-pressed="true" aria-label="System theme" title="System theme"><neo-icon name="monitor" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="lucide lucide-monitor"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <rect width="20" height="14" x="2" y="3" rx="2" />
+  <line x1="8" x2="16" y1="21" y2="21" />
+  <line x1="12" x2="12" y1="17" y2="21" />
+</svg>
+</neo-icon></button> <button type="button" data-theme-choice="light" aria-pressed="false" aria-label="Light theme" title="Light theme"><neo-icon name="sun" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="lucide lucide-sun"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <circle cx="12" cy="12" r="4" />
+  <path d="M12 2v2" />
+  <path d="M12 20v2" />
+  <path d="m4.93 4.93 1.41 1.41" />
+  <path d="m17.66 17.66 1.41 1.41" />
+  <path d="M2 12h2" />
+  <path d="M20 12h2" />
+  <path d="m6.34 17.66-1.41 1.41" />
+  <path d="m19.07 4.93-1.41 1.41" />
+</svg>
+</neo-icon></button> <button type="button" data-theme-choice="dark" aria-pressed="false" aria-label="Dark theme" title="Dark theme"><neo-icon name="moon" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="lucide lucide-moon"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" />
+</svg>
+</neo-icon></button></div></nav></header><div class="docs"><neo-sidebar overlay-breakpoint="56.25rem" aria-label="Documentation" class="docs-nav" id="docs-nav"><nav data-neo-sidebar-content aria-label="Documentation"><div class="nav-group"><p class="nav-group-title"> Get started</p><ul><li><a href="../">Клубок</a></li><li><a href="../get-started/install">Установка</a></li></ul></div><div class="nav-group"><p class="nav-group-title"> Administration</p><ul><li><a href="../administration/update">Обновление</a></li><li><a href="../administration/feature-flags">Фича-флаги</a></li><li><a href="../administration/metrics">Метрики</a></li><li><a href="../administration/privacy-policy">Политика обработки персональных данных</a></li><li><a href="../administration/storage">Изображения и хранилище</a></li></ul></div><div class="nav-group"><p class="nav-group-title"> Proxy</p><ul><li><a href="../proxy/nginx">Nginx</a></li></ul></div><div class="nav-group"><p class="nav-group-title"> Database</p><ul><li><a href="../database/postgresql">PostgreSQL</a></li></ul></div><div class="nav-group"><p class="nav-group-title"> Development</p><ul><li><a href="../development/setup" aria-current="page">Локальный запуск</a></li><li><a href="../development/release">Релиз</a></li><li><a href="../development/toolchain">Версии инструментов</a></li></ul></div></nav></neo-sidebar><div class="docs-column"><main class="docs-main" id="main-content" tabindex="-1"><details class="toc-inline"><summary><span class="toc-inline-current">Локальный запуск</span><neo-icon name="chevron-down" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="lucide lucide-chevron-down"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="m6 9 6 6 6-6" />
+</svg>
+</neo-icon></summary><ul class="toc"><li class="level-1"><a href="#-">Локальный запуск</a></li><li class="level-2"><a href="#--">Адреса по умолчанию</a></li><li class="level-2"><a href="#--dev-">Быстрый запуск dev-серверов</a></li><li class="level-2"><a href="#backend">Backend</a></li><li class="level-2"><a href="#frontend">Frontend</a></li><li class="level-2"><a href="#ai-">AI-ассистент</a></li></ul></details><p class="page-meta"><a class="icon-link" href="../development/setup.md"><neo-icon name="markdown" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="icon-markdown"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <rect width="20" height="14" x="2" y="5" rx="2" />
+  <path d="M5.5 15V9l3 3 3-3v6" />
+  <path d="M16.5 9v6" />
+  <path d="m14 12.5 2.5 2.5 2.5-2.5" />
+</svg>
+</neo-icon> Raw Markdown</a> <a class="icon-link" href="https://github.com/getklubok/klubok/blob/main/docs/5-development/1-setup.md"><neo-icon name="github" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="lucide lucide-github"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+  <path d="M9 18c-4.51 2-5-2-7-2" />
+</svg>
+</neo-icon> View this page on GitHub</a></p><article class="docs-content"><h1 id="-">Локальный запуск</h1>
+<h2 id="--">Адреса по умолчанию<a class="heading-link" href="#--" aria-label="Link to this section"></a></h2>
+<ul>
+<li><a href="http://127.0.0.1:5172/api/">API</a></li>
+<li><a href="http://127.0.0.1:5173/">Web</a></li>
+<li><a href="http://127.0.0.1:5172/api/health/live">Health Live</a></li>
+<li><a href="http://127.0.0.1:5172/api/health/ready">Health Ready</a></li>
+</ul>
+<h2 id="--dev-">Быстрый запуск dev-серверов<a class="heading-link" href="#--dev-" aria-label="Link to this section"></a></h2>
+<p>Вместо ручного запуска в двух терминалах можно управлять всем из корня проекта (требуется выполненный <code>make init</code> в <code>back</code> и <code>front</code>):</p>
+<ul>
+<li><code>make dev</code> — запускает БД, backend и frontend в правильном порядке и фоновом режиме (логи в <code>.run/logs/</code>), безопасно запускать повторно;</li>
+<li><code>make dev-status</code> — статус серверов;</li>
+<li><code>make dev-stop</code> — останавливает frontend, backend и контейнер PostgreSQL;</li>
+<li><code>make dev-restart</code> — перезапуск; <code>make dev-logs ARGS=&quot;-f back&quot;</code> — просмотр логов;</li>
+<li>выборочный таргет: <code>make dev ARGS=back</code>, <code>make dev ARGS=front</code>.</li>
+</ul>
+<h2 id="backend">Backend<a class="heading-link" href="#backend" aria-label="Link to this section"></a></h2>
+<p>Понадобятся Go 1.26.11 или новее и Docker.</p>
+<ol>
+<li>Скопируйте <code>back/.envrc.example</code> в <code>back/.envrc</code>.</li>
+<li>Откройте отдельный терминал и перейдите в каталог <code>back</code>.</li>
+<li>Загрузите переменные окружения через <a href="https://direnv.net">direnv</a> или выполните <code>source .envrc</code>.</li>
+<li>Выполните <code>make init</code> — команда установит зависимости и инструменты, а также создаст контейнер PostgreSQL.</li>
+<li>Выполните <code>make run</code> — команда применит миграции и запустит backend с race detector.</li>
+</ol>
+<h2 id="frontend">Frontend<a class="heading-link" href="#frontend" aria-label="Link to this section"></a></h2>
+<p>Понадобятся <a href="https://bun.sh">bun</a> и запущенный backend.</p>
+<ol>
+<li>Скопируйте <code>front/.env.development.example</code> в <code>front/.env.development</code>.</li>
+<li>Откройте отдельный терминал и перейдите в каталог <code>front</code>.</li>
+<li>Выполните <code>make init</code> — команда установит зависимости и сгенерирует API-клиент из OpenAPI.</li>
+<li>Выполните <code>make run</code> — команда запустит Vite dev server.</li>
+</ol>
+<h2 id="ai-">AI-ассистент<a class="heading-link" href="#ai-" aria-label="Link to this section"></a></h2>
+<ol>
+<li>Инициализируйте CodeGraph:
+<div class="code-block"><div class="code-body" id="code_1"><pre><code class="language-json"><span class="err">codegraph</span> <span class="err">init</span>
+</code></pre></div><neo-clipcopy for="code_1"><button type="button" class="copy-button" aria-label="Copy the code"><span data-neo-clipcopy-idle>Copy</span><span data-neo-clipcopy-copied>Copied</span></button></neo-clipcopy></div>
+</li>
+<li>Инициализируйте OpenSpec:
+<div class="code-block"><div class="code-body" id="code_2"><pre><code class="language-bash">openspec init --language <span class="s2">&#34;Russian (ru-RU)&#34;</span>
+</code></pre></div><neo-clipcopy for="code_2"><button type="button" class="copy-button" aria-label="Copy the code"><span data-neo-clipcopy-idle>Copy</span><span data-neo-clipcopy-copied>Copied</span></button></neo-clipcopy></div>
+</li>
+</ol>
+</article><footer class="docs-page-footer"><p class="page-meta"><a class="icon-link" href="../development/setup.md"><neo-icon name="markdown" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="icon-markdown"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <rect width="20" height="14" x="2" y="5" rx="2" />
+  <path d="M5.5 15V9l3 3 3-3v6" />
+  <path d="M16.5 9v6" />
+  <path d="m14 12.5 2.5 2.5 2.5-2.5" />
+</svg>
+</neo-icon> Raw Markdown</a> <a class="icon-link" href="https://github.com/getklubok/klubok/blob/main/docs/5-development/1-setup.md"><neo-icon name="github" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="lucide lucide-github"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+  <path d="M9 18c-4.51 2-5-2-7-2" />
+</svg>
+</neo-icon> View this page on GitHub</a></p><nav class="pager" aria-label="Previous and next page"><a class="pager-prev" href="../database/postgresql" rel="prev"><span class="pager-label">Previous</span> PostgreSQL</a> <a class="pager-next" href="../development/release" rel="next"><span class="pager-label">Next</span> Релиз</a></nav></footer></main><footer class="site-footer"><nav class="footer-links" aria-label="Project"><a class="icon-link" href="https://github.com/getklubok/klubok"><neo-icon name="github" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="lucide lucide-github"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+  <path d="M9 18c-4.51 2-5-2-7-2" />
+</svg>
+</neo-icon> GitHub</a><a class="icon-link" href="../llms.txt"><neo-icon name="file" data-neo-icon-base="/static/icons" aria-hidden="true"><svg
+  class="lucide lucide-file"
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" />
+  <path d="M14 2v5a1 1 0 0 0 1 1h5" />
+</svg>
+</neo-icon> llms.txt</a></nav></footer></div><aside class="docs-toc" aria-labelledby="docs-toc-title"><p class="toc-title" id="docs-toc-title">On this page</p><ul class="toc"><li class="level-1"><a href="#-">Локальный запуск</a></li><li class="level-2"><a href="#--">Адреса по умолчанию</a></li><li class="level-2"><a href="#--dev-">Быстрый запуск dev-серверов</a></li><li class="level-2"><a href="#backend">Backend</a></li><li class="level-2"><a href="#frontend">Frontend</a></li><li class="level-2"><a href="#ai-">AI-ассистент</a></li></ul></aside></div></body></html>
